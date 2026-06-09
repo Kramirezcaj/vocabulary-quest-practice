@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Quest — Practice</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --tl:#0f9e72;--tl-l:#e0f5ee;--tl-d:#085041;
+  --bl:#1a6fc4;--bl-l:#e8f2fb;--bl-d:#0c447c;
+  --am:#c47a10;--am-l:#fdf0d8;--am-d:#633806;
+  --co:#c44a28;--co-l:#fdeee9;--co-d:#712b13;
+  --vi:#7c3aed;--vi-l:#f1ecfe;--vi-d:#4a1d96;
+  --in:#5b45c8;--in-l:#eeecfd;--in-d:#3b2a9c;
+  --cy:#0d8a8a;--cy-l:#dcf2f2;--cy-d:#085656;
+  --ok-bg:#e8f7ef;--ok-b:#3daa6f;--ok-t:#145c35;
+  --er-bg:#fdeaea;--er-b:#d94f4f;--er-t:#7a1a1a;
+  --bg:#f7f6f2;--card:#fff;--c2:#f0efe9;--c3:#e4e3dd;
+  --tx:#18180f;--tx2:#6b6a60;--tx3:#b0aea4;
+  --bd:#e2e0d8;--bd2:#c8c6bc;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+.lock,.lock *{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;-webkit-tap-highlight-color:transparent}
+#app{max-width:680px;margin:0 auto;padding:20px 16px 80px}
+.screen{display:none}.screen.active{display:block;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.screen.active{animation:none}*{transition:none!important}}
+.rainbow{height:4px;border-radius:2px;margin-bottom:22px;background:linear-gradient(90deg,#0f9e72,#1a6fc4,#7c3aed,#c47a10,#c44a28)}
+.badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--vi-l);color:var(--vi-d)}
+
+/* NAME */
+.nwrap{min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.nlogo{width:54px;height:54px;border-radius:16px;background:var(--tl);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 8px 22px rgba(15,158,114,.32)}
+.nlogo svg{width:27px;height:27px;stroke:#fff;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ntitle{font-size:35px;font-weight:900;letter-spacing:-1.6px;margin:14px 0 6px;line-height:1.08}
+.ntitle span{color:var(--tl)}
+.nsub{font-size:14px;color:var(--tx2);line-height:1.65;max-width:360px;margin:0 auto 26px}
+.ncard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:26px 22px;width:100%;max-width:390px;text-align:left}
+.flbl{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px}
+.finp{width:100%;padding:12px 14px;border:1.5px solid var(--bd2);border-radius:10px;font-size:15px;background:var(--bg);color:var(--tx);font-family:inherit;outline:none;transition:border-color .2s}
+.finp:focus{border-color:var(--tl)}
+.bigbtn{width:100%;margin-top:14px;padding:14px;border-radius:10px;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--tl);transition:opacity .15s,transform .12s}
+.bigbtn:hover{opacity:.9;transform:translateY(-1px)}
+.bigbtn:focus-visible{outline:3px solid var(--tl-l);outline-offset:2px}
+.nhint{font-size:11px;color:var(--tx3);margin-top:12px;text-align:center;line-height:1.5}
+
+/* HOME */
+.htop{display:flex;align-items:center;gap:13px;padding:16px 0 12px}
+.av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;background:var(--tl);flex-shrink:0}
+.hg{font-size:13px;color:var(--tx2);margin-bottom:1px}
+.hn{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.hdesc{font-size:13px;color:var(--tx2);margin:4px 0 18px;line-height:1.55}
+.sect{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin:18px 0 10px}
+.lvgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.lvc{background:var(--card);border:1.5px solid var(--bd);border-radius:18px;padding:18px 16px;cursor:pointer;text-align:left;transition:transform .15s,box-shadow .15s,border-color .15s;font-family:inherit;position:relative;overflow:hidden}
+.lvc:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.09);border-color:var(--bd2)}
+.lvc:focus-visible{outline:3px solid var(--c3);outline-offset:2px}
+.lvst{height:4px;border-radius:2px;margin-bottom:13px;width:42px}
+.lvn{font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:-.2px}
+.lvd{font-size:12px;color:var(--tx2);line-height:1.45}
+.lvb{font-size:10px;font-weight:800;margin-top:10px;padding:3px 9px;border-radius:8px;display:inline-block;letter-spacing:.03em}
+.lvshape{position:absolute;bottom:-16px;right:-16px;width:66px;height:66px;border-radius:50%;opacity:.08}
+.wide{grid-column:1 / -1}
+.hft{text-align:center;font-size:11px;color:var(--tx3);padding-top:22px;line-height:1.6}
+
+/* QUIZ */
+.gtop{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.gpill{font-size:11px;font-weight:800;padding:5px 12px;border-radius:20px;letter-spacing:.03em;white-space:nowrap;color:#fff}
+.gpw{flex:1;display:flex;flex-direction:column;gap:4px}
+.gtrk{height:6px;background:var(--c3);border-radius:3px;overflow:hidden}
+.gfill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.gmeta{font-size:11px;color:var(--tx3);display:flex;justify-content:space-between}
+.gscore{font-size:13px;font-weight:800;padding:5px 11px;border-radius:18px;background:var(--card);border:1.5px solid var(--bd);white-space:nowrap;min-width:48px;text-align:center}
+.passage{background:var(--card);border:1.5px solid var(--bd);border-radius:16px;padding:18px 18px;margin-bottom:12px;max-height:300px;overflow-y:auto}
+.passage h3{font-size:16px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
+.passage .pmeta{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+.passage p{font-size:14px;line-height:1.75;margin-bottom:11px;color:var(--tx)}
+.preadhint{font-size:11px;color:var(--tx3);text-align:center;margin-bottom:12px}
+.qcard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:22px 20px;margin-bottom:12px}
+.qtags{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:9px;letter-spacing:.03em}
+.tags{background:var(--c2);color:var(--tx2)}.tagt{background:var(--vi-l);color:var(--vi)}
+.wbox{border-radius:12px;padding:14px 18px;margin-bottom:14px;text-align:center;background:var(--tl-l)}
+.wh{font-size:25px;font-weight:900;letter-spacing:-.5px;margin-bottom:2px}
+.wp{font-size:10px;font-weight:700;opacity:.6;letter-spacing:.05em;text-transform:uppercase}
+.schd{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--tx3);text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.schl{flex:1;height:1px;background:var(--bd)}
+.sc{background:var(--c2);border-left:4px solid var(--tl);border-radius:0 10px 10px 0;padding:13px 15px;font-size:14px;line-height:1.7;margin-bottom:14px}
+.sc em{font-style:normal;font-weight:700;color:var(--tl-d)}
+.sc strong{font-weight:800}
+.qp{font-size:15px;font-weight:700;line-height:1.45;margin-bottom:14px}
+.qp strong{color:var(--tl-d)}
+.opts{display:grid;gap:9px}
+.opt{background:var(--bg);border:1.5px solid var(--bd2);border-radius:11px;padding:12px 14px;font-size:13.5px;line-height:1.45;text-align:left;cursor:pointer;color:var(--tx);transition:all .14s;font-family:inherit;display:flex;align-items:flex-start;gap:9px;width:100%}
+.opt:hover:not(:disabled){background:var(--tl-l);border-color:var(--tl);transform:translateY(-1px)}
+.opt:disabled{cursor:default}
+.opt:focus-visible{outline:3px solid var(--c3);outline-offset:1px}
+.olet{font-weight:800;font-size:12px;width:20px;height:20px;border-radius:6px;background:var(--c3);color:var(--tx2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok-t);font-weight:600}
+.opt.ok .olet{background:var(--ok-b);color:#fff}
+.opt.bad{background:var(--er-bg);border-color:var(--er-b);color:var(--er-t)}
+.opt.bad .olet{background:var(--er-b);color:#fff}
+.expl{margin-top:14px;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.6;display:none}
+.expl.show{display:block;animation:fade .3s ease}
+.expl.good{background:var(--ok-bg);color:var(--ok-t)}
+.expl.bad{background:var(--er-bg);color:var(--er-t)}
+.expl b{display:block;margin-bottom:3px;font-size:12px;letter-spacing:.03em;text-transform:uppercase}
+.expl .ex{margin-top:7px;font-style:italic;opacity:.85}
+.nextbtn{width:100%;padding:13px;border-radius:11px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--tl);display:none}
+.nextbtn.show{display:block;animation:fade .3s ease}
+.nextbtn:hover{opacity:.9}
+
+/* WRITING */
+.wtop{margin-bottom:14px}
+.wtag{font-size:11px;font-weight:800;letter-spacing:.04em;padding:5px 12px;border-radius:20px;color:#fff;display:inline-block;margin-bottom:10px}
+.wtitle{font-size:21px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px;line-height:1.15}
+.wprompt{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:15px 16px;font-size:14px;line-height:1.65;color:var(--tx);margin-bottom:8px}
+.waud{font-size:12px;color:var(--tx2);margin-bottom:14px}
+.waud b{color:var(--tx)}
+.wta{width:100%;min-height:240px;padding:15px;border:1.5px solid var(--bd2);border-radius:14px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;background:var(--card);color:var(--tx);outline:none;transition:border-color .2s}
+.wta:focus{border-color:var(--in)}
+.wcount{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--tx2);margin:10px 2px}
+.wcount b{font-weight:800}
+.wsubmit{width:100%;margin-top:12px;padding:14px;border-radius:11px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--in)}
+.wsubmit:hover{opacity:.9}
+.wsubmit:disabled{opacity:.45;cursor:not-allowed}
+
+/* RESULT */
+.rwrap{text-align:center;padding-top:6px}
+.ring{width:150px;height:150px;margin:8px auto 14px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ringtx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringn{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1}
+.ringl{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
+.rband{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:5px}
+.rmsg{font-size:14px;color:var(--tx2);line-height:1.6;max-width:420px;margin:0 auto 18px}
+.rstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
+.rstat{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:14px 8px}
+.rsn{font-size:22px;font-weight:900;letter-spacing:-.5px}
+.rsl{font-size:11px;color:var(--tx2);margin-top:3px;font-weight:600}
+.fbcard{background:var(--card);border:1.5px solid var(--bd);border-radius:16px;padding:18px;text-align:left;margin-bottom:12px}
+.fbh{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.fbrow{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.fbrow:last-child{margin-bottom:0}
+.fblbl{font-size:13px;font-weight:600;width:130px;flex-shrink:0}
+.fbbar{flex:1;height:8px;background:var(--c3);border-radius:4px;overflow:hidden}
+.fbfill{height:100%;border-radius:4px}
+.fbval{font-size:12px;font-weight:800;width:36px;text-align:right;flex-shrink:0}
+.fblist{list-style:none}
+.fblist li{font-size:13.5px;line-height:1.6;padding:6px 0 6px 22px;position:relative;border-bottom:1px solid var(--bd)}
+.fblist li:last-child{border-bottom:none}
+.fblist li::before{content:'';position:absolute;left:2px;top:13px;width:8px;height:8px;border-radius:50%}
+.fblist.good li::before{background:var(--ok-b)}
+.fblist.work li::before{background:var(--am)}
+.rbtns{display:flex;gap:10px;margin-top:6px}
+.rbtn{flex:1;padding:13px;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;border:none;transition:opacity .15s}
+.rbtn:hover{opacity:.9}
+.rbtn.pri{color:#fff;background:var(--tl)}
+.rbtn.sec{color:var(--tx);background:var(--card);border:1.5px solid var(--bd2)}
+
+/* TOAST */
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--tx);color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:24px;opacity:0;pointer-events:none;transition:.3s;z-index:99;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.warn{background:var(--er-t)}
+
+/* TEACHER ACCESS */
+.tlink{margin-top:16px;background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
+.tlwrap{min-height:88vh;display:flex;align-items:center;justify-content:center}
+.tlcard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:30px 26px;width:100%;max-width:380px;text-align:center}
+.tlico{width:50px;height:50px;border-radius:15px;background:var(--bl-l);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.tlico svg{width:22px;height:22px;stroke:var(--bl);stroke-width:2;fill:none;stroke-linecap:round}
+.tlh{font-size:19px;font-weight:800;margin-bottom:5px}
+.tlp{font-size:13px;color:var(--tx2);line-height:1.55;margin-bottom:18px}
+.errmsg{font-size:12px;color:var(--er-t);margin-top:9px;display:none}
+.backl{background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;margin-top:13px;width:100%}
+.dashtop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
+.dashh{font-size:22px;font-weight:900;letter-spacing:-.5px}
+.dashlive{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:7px;margin-top:3px}
+.ldot{width:8px;height:8px;border-radius:50%;background:var(--tl);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(15,158,114,.5)}70%{box-shadow:0 0 0 8px rgba(15,158,114,0)}100%{box-shadow:0 0 0 0 rgba(15,158,114,0)}}
+.dashex{padding:8px 16px;border-radius:10px;border:1.5px solid var(--bd2);background:var(--card);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx2)}
+.dashex:hover{background:var(--c2)}
+.dfilters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px}
+.dfin{width:auto;appearance:auto;padding:9px 12px}
+.refbtn{padding:9px 14px;border-radius:10px;border:1.5px solid var(--bd2);background:var(--card);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx2)}
+.refbtn:hover{background:var(--c2)}
+.refbtn.dl{background:var(--tl);color:#fff;border:none}
+.metg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.metc{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:14px 12px 14px 16px;position:relative;overflow:hidden}
+.mets{position:absolute;top:0;left:0;width:4px;height:100%}
+.metv{font-size:23px;font-weight:900;letter-spacing:-.5px}
+.metl{font-size:11px;color:var(--tx2);font-weight:600;margin-top:2px}
+.metsub{font-size:10px;color:var(--tx3)}
+.dashg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dc{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:16px}
+.dc.full{grid-column:1 / -1}
+.dch{font-size:13px;font-weight:800;margin-bottom:12px}
+.dctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.brow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.brow:last-child{margin-bottom:0}
+.bl{font-size:12px;width:118px;flex-shrink:0;color:var(--tx2);font-weight:600}
+.bt{flex:1;height:8px;background:var(--c3);border-radius:4px;overflow:hidden}
+.bf{height:100%;border-radius:4px}
+.bv{font-size:12px;font-weight:800;width:30px;text-align:right}
+.emptyd{font-size:13px;color:var(--tx3);text-align:center;padding:24px}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}
+.stbl th{text-align:left;font-size:11px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1.5px solid var(--bd)}
+.stbl td{padding:9px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.lvdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.sct{height:5px;background:var(--c3);border-radius:3px;overflow:hidden;margin-top:3px;width:84px}
+.scf{height:100%;border-radius:3px}
+.perfb{font-size:11px;font-weight:800;padding:3px 9px;border-radius:8px}
+.readbtn{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;border:1.5px solid var(--bd2);background:var(--card);cursor:pointer;font-family:inherit;color:var(--tx2);margin-left:5px}
+.readbtn:hover{background:var(--c2)}
+#emodal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:120}
+#emodal.show{display:flex}
+.emodal-card{background:var(--card);border-radius:18px;padding:22px;max-width:560px;width:100%;max-height:86vh;overflow-y:auto}
+.emodal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.emodal-name{font-size:18px;font-weight:900;letter-spacing:-.3px}
+.emodal-meta{font-size:12px;color:var(--tx2);margin-top:2px}
+.emodal-x{background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);font-family:inherit}
+.emodal-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);margin:14px 0 7px}
+.emodal-text{font-size:14px;line-height:1.7;white-space:pre-wrap;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.emb-bands{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px}
+.emb-b{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:9px 4px;text-align:center}
+.emb-b span{display:block;font-size:9px;color:var(--tx2);font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+.emb-b b{font-size:17px}
+.emb-sum{font-size:13px;line-height:1.6;color:var(--tx);background:var(--bl-l);border-radius:10px;padding:11px 13px;margin-bottom:8px}
+@media (max-width:560px){.metg{grid-template-columns:1fr 1fr}.dashg{grid-template-columns:1fr}.emb-bands{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- NAME -->
+  <section class="screen active" id="s-name">
+    <div class="nwrap">
+      <div class="nlogo"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <span class="badge">Practice mode</span>
+      <h1 class="ntitle">Vocabulary <span>Quest</span></h1>
+      <p class="nsub">Train for the real quiz. Pick a level, answer questions, and get instant feedback on every answer. Practise as many times as you like.</p>
+      <div class="ncard">
+        <label class="flbl" for="nm">Your name</label>
+        <input class="finp" id="nm" type="text" placeholder="e.g. Isabella" autocomplete="off" maxlength="40">
+        <label class="flbl" for="cs" style="margin-top:14px">Your course</label>
+        <select class="finp" id="cs" style="appearance:auto">
+          <option value="">Select your course…</option>
+          <option value="6D">6D</option>
+          <option value="6E">6E</option>
+          <option value="6F">6F</option>
+          <option value="7C">7C</option>
+          <option value="7D">7D</option>
+        </select>
+        <button class="bigbtn" id="startBtn">Start practising</button>
+        <p class="nhint">Your name, course and results are saved automatically so your teacher can follow your practice progress. The anti-cheat rules are on so it feels like the real test.</p>
+        <button class="tlink" id="tlink">Teacher access</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOME -->
+  <section class="screen" id="s-home">
+    <div class="rainbow"></div>
+    <div class="htop">
+      <div class="av" id="av">S</div>
+      <div><div class="hg">Practice session</div><div class="hn" id="hn">Student</div></div>
+    </div>
+    <p class="hdesc">Choose a module to practise. Each one mirrors a part of the real Cambridge Stage 8 &amp; 9 quiz — only the questions change every time you play.</p>
+    <div class="sect">Vocabulary &amp; grammar</div>
+    <div class="lvgrid" id="lvgrid"></div>
+    <div class="sect">Reading &amp; writing</div>
+    <div class="lvgrid" id="rwgrid"></div>
+    <p class="hft">Cambridge Lower Secondary · Stages 8 &amp; 9<br>Keep practising — every round has fresh questions.</p>
+  </section>
+
+  <!-- READING LIST -->
+  <section class="screen" id="s-readlist">
+    <div class="gtop">
+      <span class="gpill" style="background:var(--vi)">Reading comprehension</span>
+    </div>
+    <p class="hdesc" style="margin-top:0">Pick a text. Read it carefully, then answer the questions. You can scroll the text while you answer, but you cannot go back to change an answer.</p>
+    <div class="lvgrid" id="readgrid"></div>
+    <button class="rbtn sec" style="margin-top:14px;width:100%" id="readBack">Back to menu</button>
+  </section>
+
+  <!-- QUIZ -->
+  <section class="screen lock" id="s-quiz">
+    <div class="gtop">
+      <span class="gpill" id="qpill">Beginner</span>
+      <div class="gpw">
+        <div class="gtrk"><div class="gfill" id="qfill" style="width:0%"></div></div>
+        <div class="gmeta"><span id="qprog">Question 1</span><span id="qstreak">Streak 0</span></div>
+      </div>
+      <div class="gscore" id="qscore">0</div>
+    </div>
+    <div id="qpassageWrap"></div>
+    <div class="qcard" id="qcard"></div>
+    <button class="nextbtn" id="nextBtn">Next question</button>
+  </section>
+
+  <!-- WRITING -->
+  <section class="screen lock" id="s-write">
+    <div class="wtop">
+      <span class="wtag" id="wtag">Stage 8 — Article</span>
+      <h2 class="wtitle" id="wtitle"></h2>
+      <div class="wprompt" id="wprompt"></div>
+      <div class="waud" id="waud"></div>
+    </div>
+    <textarea class="wta" id="wta" placeholder="Start writing here. Plan your paragraphs, use connectives, and check your work before you submit." spellcheck="false"></textarea>
+    <div class="wcount"><span>Words: <b id="wnum">0</b> <span id="wgoal"></span></span><span id="wready"></span></div>
+    <button class="wsubmit" id="wsubmit" disabled>Get feedback</button>
+  </section>
+
+  <!-- WRITE RESULT -->
+  <section class="screen" id="s-wresult"></section>
+
+  <!-- QUIZ RESULT -->
+  <section class="screen" id="s-result"></section>
+
+  <!-- TEACHER LOGIN -->
+  <section class="screen" id="s-tl">
+    <div class="tlwrap"><div class="tlcard">
+      <div class="tlico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div class="tlh">Teacher dashboard</div>
+      <p class="tlp">Enter your access password to see every student's practice results and progress.</p>
+      <div class="flbl" style="text-align:left">Password</div>
+      <input class="finp" id="tpass" type="password" placeholder="Enter password">
+      <button class="bigbtn" id="tlbtn" style="background:var(--bl)">View dashboard</button>
+      <p class="errmsg" id="perr">Incorrect password. Please try again.</p>
+      <button class="backl" id="tbk">Back to student login</button>
+    </div></div>
+  </section>
+
+  <!-- TEACHER DASHBOARD -->
+  <section class="screen" id="s-dash">
+    <div class="rainbow"></div>
+    <div class="dashtop">
+      <div><div class="dashh">Teacher dashboard</div><div class="dashlive"><span class="ldot"></span>Live practice results — refreshes every 30 seconds</div></div>
+      <button class="dashex" id="dex">Exit</button>
+    </div>
+    <div class="dfilters">
+      <div><div class="flbl">Date</div><input class="finp dfin" id="fdate" type="date"></div>
+      <div><div class="flbl">Course</div><select class="finp dfin" id="fcourse"><option value="">All courses</option><option value="6D">6D</option><option value="6E">6E</option><option value="6F">6F</option><option value="7C">7C</option><option value="7D">7D</option></select></div>
+      <div><div class="flbl">Activity</div><select class="finp dfin" id="factiv"><option value="">All activities</option><option value="beginner">Beginner</option><option value="elementary">Elementary</option><option value="intermediate">Intermediate</option><option value="expert">Expert</option><option value="reading">Reading</option><option value="stage8">Stage 8 — Article</option><option value="stage9">Stage 9 — Essay</option></select></div>
+      <button class="refbtn dl" id="dlbtn">⬇ Download backup (Excel)</button>
+    </div>
+    <div class="metg">
+      <div class="metc"><div class="mets" style="background:#0f9e72"></div><div class="metv" id="mtot">--</div><div class="metl">Attempts</div></div>
+      <div class="metc"><div class="mets" style="background:#1a6fc4"></div><div class="metv" id="mavg">--</div><div class="metl">Average score</div><div class="metsub">out of 100</div></div>
+      <div class="metc"><div class="mets" style="background:#c47a10"></div><div class="metv" id="mpass">--</div><div class="metl">Pass rate</div><div class="metsub">scored 60+</div></div>
+      <div class="metc"><div class="mets" style="background:#c44a28"></div><div class="metv" id="mtop">--</div><div class="metl">Most practised</div></div>
+    </div>
+    <div class="dashg">
+      <div class="dc"><div class="dch">Average score by activity</div><div id="dbylv"></div></div>
+      <div class="dc"><div class="dch">Score distribution</div><div id="ddist"></div></div>
+      <div class="dc full"><div class="dctop"><div class="dch" id="dhd" style="margin:0">Results today</div><button class="refbtn" id="rfbtn">Refresh</button></div><div id="dtbl"></div></div>
+    </div>
+  </section>
+
+</div>
+<div id="toast"></div>
+<div id="emodal"></div>
+
+<script>
+/* ============ DATA ============ */
+// Every question: options[0] is the correct answer; options are shuffled at render.
+var QUESTIONS={
+beginner:[
+ {word:"reckless",pos:"Adjective",subject:"Daily life",scenario:"Driving at high speed through the crowded market was a <em>reckless</em> thing to do — someone could easily have been hurt.",prompt:"What does <strong>reckless</strong> mean here?",options:["Acting without thinking about danger or consequences","Careful and well planned","Slow and gentle","Polite and considerate"],why:"Reckless means acting without thinking about the danger or the results.",extra:"A reckless driver / a reckless decision — always a negative word."},
+ {word:"hesitate",pos:"Verb",subject:"Daily life",scenario:"She did not <em>hesitate</em> for a second; the moment the door opened, she ran straight inside.",prompt:"What does <strong>hesitate</strong> mean?",options:["To pause because you are unsure","To move very quickly","To shout loudly","To fall over"],why:"Hesitate means to pause before acting because you are unsure or doubtful.",extra:"Don't hesitate to ask — a common, friendly phrase."},
+ {word:"gloomy",pos:"Adjective",subject:"Language arts",scenario:"The sky was grey and the rain would not stop; the whole town felt <em>gloomy</em> that afternoon.",prompt:"What does <strong>gloomy</strong> suggest about the atmosphere?",options:["Dark, sad and depressing","Bright and cheerful","Loud and busy","Warm and sunny"],why:"Gloomy means dark and depressing, in mood or in light.",extra:"A gloomy mood / a gloomy room — useful for descriptive writing."},
+ {word:"sturdy",pos:"Adjective",subject:"Daily life",scenario:"The old wooden table was <em>sturdy</em> enough to stand on without wobbling at all.",prompt:"What does <strong>sturdy</strong> mean?",options:["Strong and solidly built","Thin and fragile","Light and soft","Old and broken"],why:"Sturdy means strong and solidly built, not easily damaged.",extra:"Sturdy boots / a sturdy bridge — built to last."},
+ {word:"conceal",pos:"Verb",subject:"Daily life",scenario:"He tried to <em>conceal</em> the broken vase by pushing the pieces behind the curtain.",prompt:"What does <strong>conceal</strong> mean?",options:["To hide something from view","To repair something","To show something proudly","To throw something away"],why:"Conceal means to hide something so it cannot be seen. The opposite is reveal.",extra:"She could not conceal her excitement — also used for feelings."},
+ {word:"brisk",pos:"Adjective",subject:"Daily life",scenario:"She set off at a <em>brisk</em> pace, walking so fast that I struggled to keep up.",prompt:"What does <strong>brisk</strong> mean here?",options:["Quick and energetic","Slow and tired","Lazy and relaxed","Confused and lost"],why:"Brisk means quick and full of energy.",extra:"A brisk walk / brisk business — fast and lively."},
+ {word:"fierce",pos:"Adjective",subject:"Science",scenario:"The <em>fierce</em> dog growled and bared its teeth at anyone who came near the gate.",prompt:"What does <strong>fierce</strong> mean?",options:["Aggressive and frightening","Friendly and calm","Small and weak","Quiet and shy"],why:"Fierce means aggressive, violent or frightening.",extra:"Fierce competition / a fierce storm — also means very strong or intense."},
+ {word:"sincere",pos:"Adjective",subject:"Daily life",scenario:"His apology felt <em>sincere</em>; you could tell he truly meant every word he said.",prompt:"What does <strong>sincere</strong> mean here?",options:["Genuine and honest","False and pretended","Angry and rude","Funny and silly"],why:"Sincere means genuine and honest — the feeling is real. The opposite is fake.",extra:"My sincere thanks — common in formal writing."},
+ {word:"eager",pos:"Adjective",subject:"School",scenario:"The new student was so <em>eager</em> to learn that she always finished her work first and asked for more.",prompt:"What does <strong>eager</strong> mean?",options:["Very keen and enthusiastic","Bored and unwilling","Tired and sleepy","Nervous and afraid"],why:"Eager means very keen and enthusiastic to do something.",extra:"Eager to please / an eager learner — a positive word."},
+ {word:"exaggerate",pos:"Verb",subject:"Language arts",scenario:"He likes to <em>exaggerate</em>; he said the fish was a metre long, but it was actually tiny.",prompt:"What does <strong>exaggerate</strong> mean?",options:["To make something seem bigger or better than it is","To describe something exactly","To forget something","To hide the truth completely"],why:"Exaggerate means to make something seem larger, better or worse than it really is.",extra:"Don't exaggerate! — telling someone to stick to the facts."},
+ {word:"reveal",pos:"Verb",subject:"Science",scenario:"The scientist pulled back the cloth to <em>reveal</em> the results of the experiment.",prompt:"What does <strong>reveal</strong> mean?",options:["To make something known or show it","To hide something","To destroy something","To copy something"],why:"Reveal means to show or make known something that was hidden. The opposite is conceal.",extra:"New evidence revealed the truth — common in science and news."},
+ {word:"generous",pos:"Adjective",subject:"Daily life",scenario:"It was very <em>generous</em> of him to share his lunch with the student who had forgotten hers.",prompt:"What does <strong>generous</strong> mean?",options:["Kind and willing to give","Selfish and mean","Quiet and shy","Strict and serious"],why:"Generous means kind and willing to share or give. The opposite is mean or selfish.",extra:"A generous portion — also means large in amount."},
+ {word:"peculiar",pos:"Adjective",subject:"Daily life",scenario:"There was a <em>peculiar</em> smell in the kitchen that nobody could explain.",prompt:"What does <strong>peculiar</strong> mean here?",options:["Strange and unusual","Pleasant and sweet","Ordinary and normal","Strong and clean"],why:"Peculiar means strange or unusual.",extra:"Peculiar to this region — can also mean belonging only to one thing."},
+ {word:"fortunate",pos:"Adjective",subject:"Daily life",scenario:"We were <em>fortunate</em> that the storm passed before our flight was due to take off.",prompt:"What does <strong>fortunate</strong> mean?",options:["Lucky","Unlucky","Worried","Late"],why:"Fortunate means lucky. The opposite is unfortunate.",extra:"Fortunately is the adverb: fortunately, no one was hurt."},
+ {word:"hostile",pos:"Adjective",subject:"Social studies",scenario:"The crowd grew <em>hostile</em>, shouting and shaking their fists at the referee.",prompt:"What does <strong>hostile</strong> mean?",options:["Unfriendly and aggressive","Calm and supportive","Happy and excited","Silent and bored"],why:"Hostile means unfriendly and aggressive, ready for conflict.",extra:"A hostile reaction / hostile conditions — also used for harsh environments."},
+ {word:"vague",pos:"Adjective",subject:"Language arts",scenario:"His directions were so <em>vague</em> that we got completely lost on the way.",prompt:"What does <strong>vague</strong> mean?",options:["Not clear or exact","Detailed and precise","Long and boring","Loud and clear"],why:"Vague means not clear, not exact or not detailed. The opposite is precise.",extra:"A vague memory / a vague answer — lacking detail."},
+ {word:"immense",pos:"Adjective",subject:"Science",scenario:"From the top of the hill, the <em>immense</em> valley stretched as far as the eye could see.",prompt:"What does <strong>immense</strong> mean?",options:["Extremely large","Very small","Slightly damp","Brightly coloured"],why:"Immense means extremely large in size or degree.",extra:"Immense pressure / immense effort — also used for amounts."},
+ {word:"dwindle",pos:"Verb",subject:"Social studies",scenario:"As the long winter continued, their food supplies began to <em>dwindle</em> until almost nothing was left.",prompt:"What does <strong>dwindle</strong> mean?",options:["To gradually become smaller or fewer","To suddenly increase","To stay exactly the same","To become heavier"],why:"Dwindle means to gradually become less or smaller in number.",extra:"Dwindling numbers / dwindling hope — a slow, steady decrease."}
+],
+elementary:[
+ {word:"look forward to",pos:"Phrasal verb",subject:"School",scenario:"I am really <em>looking forward to</em> the school trip next week — I can hardly wait.",prompt:"Which sentence uses <strong>look forward to</strong> in the same way?",options:["She is looking forward to seeing her cousins this summer.","He looked forward and saw the bus coming.","Please move forward to the front of the queue.","They looked forward over the edge of the cliff."],why:"Look forward to (+ noun / -ing) means to feel excited about something in the future."},
+ {word:"get along with",pos:"Phrasal verb",subject:"Daily life",scenario:"She <em>gets along with</em> all her classmates and never argues with anyone.",prompt:"Which sentence uses <strong>get along with</strong> in the same way?",options:["He gets along well with his new teammates.","They got along the road as fast as they could.","Please get along home before it gets dark.","She got the answer along with everyone else."],why:"Get along with someone means to have a friendly relationship with them."},
+ {word:"run out of",pos:"Phrasal verb",subject:"Daily life",scenario:"We <em>ran out of</em> milk, so I could not make breakfast this morning.",prompt:"Which sentence uses <strong>run out of</strong> in the same way?",options:["The printer has run out of ink again.","She ran out of the building when the alarm sounded.","The dog ran out of the open gate.","Time ran out of the clock at noon."],why:"Run out of something means to have no more of it left."},
+ {word:"come across",pos:"Phrasal verb",subject:"Daily life",scenario:"I <em>came across</em> an old photo of my grandparents while cleaning my room.",prompt:"Which sentence uses <strong>come across</strong> in the same way?",options:["He came across a strange word he had never seen before.","She came across the bridge to meet us.","The message came across loud and clear.","They came across the room to say hello."],why:"Come across something means to find it by chance, without looking for it."},
+ {word:"give up",pos:"Phrasal verb",subject:"School",scenario:"He refused to <em>give up</em>, even after failing the test twice.",prompt:"Which sentence uses <strong>give up</strong> in the same way?",options:["Never give up on your dreams, no matter how hard it gets.","Please give up your seat to the elderly passenger.","She gave up her bag to the security guard.","He gave up the answer to the whole class."],why:"Give up means to stop trying. (Give up your seat means to offer it — a different meaning.)"},
+ {word:"turn down",pos:"Phrasal verb",subject:"Social studies",scenario:"She <em>turned down</em> the job offer because the salary was too low.",prompt:"Which sentence uses <strong>turn down</strong> in the same way?",options:["He turned down the invitation to the party.","Please turn down the volume on the radio.","They turned down the next street on the left.","She turned down the bed before sleeping."],why:"Turn down (an offer) means to refuse or reject it. (Turn down the volume = reduce it.)"},
+ {word:"bring up",pos:"Phrasal verb",subject:"Language arts",scenario:"He <em>brought up</em> an interesting point during the class discussion.",prompt:"Which sentence uses <strong>bring up</strong> in the same way?",options:["Nobody wanted to bring up the subject of the test.","Could you bring up these boxes from the basement?","She was brought up by her grandparents.","He brought up his lunch after the rough boat ride."],why:"Bring up a topic means to mention or introduce it. (It can also mean to raise a child.)"},
+ {word:"look after",pos:"Phrasal verb",subject:"Daily life",scenario:"Could you <em>look after</em> my dog while I am away this weekend?",prompt:"Which sentence uses <strong>look after</strong> in the same way?",options:["A nurse looks after the patients on the ward.","She looked after the train as it left the station.","He looked after the missing keys everywhere.","They looked after the noise came from upstairs."],why:"Look after someone or something means to take care of them."},
+ {word:"set up",pos:"Phrasal verb",subject:"Social studies",scenario:"They <em>set up</em> a small business shortly after leaving school.",prompt:"Which sentence uses <strong>set up</strong> in the same way?",options:["The charity was set up to help homeless families.","She set up early to catch the first bus.","He set up the heavy box on the shelf.","They set up the hill towards the summit."],why:"Set up means to start or establish something, such as a business or organisation."},
+ {word:"figure out",pos:"Phrasal verb",subject:"School",scenario:"It took me ages to <em>figure out</em> how the new machine worked.",prompt:"Which sentence uses <strong>figure out</strong> in the same way?",options:["Can you figure out the answer to this puzzle?","She drew a figure out of clay.","He figured out loud while reading.","They figured out of the classroom quickly."],why:"Figure out means to understand or solve something after thinking about it."},
+ {word:"hand in",pos:"Phrasal verb",subject:"School",scenario:"Remember to <em>hand in</em> your essay before Friday afternoon.",prompt:"Which sentence uses <strong>hand in</strong> in the same way?",options:["All students must hand in their projects by Monday.","She put her hand in the cold water.","He handed in the same direction as the sign.","They walked hand in hand to school."],why:"Hand in means to give or submit your work to someone in charge."},
+ {word:"count on",pos:"Phrasal verb",subject:"Daily life",scenario:"You can always <em>count on</em> her to help in an emergency.",prompt:"Which sentence uses <strong>count on</strong> in the same way?",options:["We are counting on you to lead the team.","She began to count on her fingers.","He left the count on the table.","They counted on the seats one by one."],why:"Count on someone means to rely on or trust them."},
+ {word:"end up",pos:"Phrasal verb",subject:"Daily life",scenario:"We got lost and <em>ended up</em> miles away from the hotel.",prompt:"Which sentence uses <strong>end up</strong> in the same way?",options:["If you keep wasting time, you will end up failing.","She reached the end up the staircase.","He turned the book end up on the desk.","They stood the ladder end up in the shed."],why:"End up means to finally be in a particular situation or place, often unexpectedly."},
+ {word:"take a break",pos:"Collocation",subject:"School",scenario:"After two hours of revision, she decided to <em>take a break</em> and have a drink.",prompt:"Which sentence uses the correct collocation?",options:["Let's take a break before we start the next chapter.","Let's make a break before we start the next chapter.","Let's do a break before we start the next chapter.","Let's get a break before we start the next chapter."],why:"The natural collocation is take a break."},
+ {word:"make an effort",pos:"Collocation",subject:"School",scenario:"He <em>made an effort</em> to be polite to the new teacher.",prompt:"Which sentence uses the correct collocation?",options:["You should make an effort to arrive on time.","You should do an effort to arrive on time.","You should take an effort to arrive on time.","You should give an effort to arrive on time."],why:"The correct collocation is make an effort."},
+ {word:"catch a cold",pos:"Collocation",subject:"Health",scenario:"He <em>caught a cold</em> after walking home in the heavy rain.",prompt:"Which sentence uses the correct collocation?",options:["She caught a cold and stayed home from school.","She took a cold and stayed home from school.","She made a cold and stayed home from school.","She did a cold and stayed home from school."],why:"The natural collocation is catch a cold."},
+ {word:"keep a promise",pos:"Collocation",subject:"Daily life",scenario:"She always <em>keeps her promises</em>, so everyone trusts her.",prompt:"Which sentence uses the correct collocation?",options:["He kept his promise to call her every week.","He held his promise to call her every week.","He did his promise to call her every week.","He gave his promise to call her every week."],why:"The correct collocation is keep a promise."},
+ {word:"pay attention",pos:"Collocation",subject:"School",scenario:"The teacher asked the noisy students to <em>pay attention</em> to the instructions.",prompt:"Which sentence uses the correct collocation?",options:["You must pay attention to the safety rules.","You must give attention on the safety rules.","You must do attention to the safety rules.","You must make attention at the safety rules."],why:"The correct collocation is pay attention to."}
+],
+intermediate:[
+ {word:"Moreover",pos:"Cohesive device (addition)",subject:"Social studies",scenario:"The new policy will be expensive to introduce. There is also little evidence that it actually works.",prompt:"Which option correctly fills the blank? The policy is costly. <strong>___</strong>, there is no proof that it works.",options:["Moreover","Nevertheless","Meanwhile","Otherwise"],why:"'Moreover' adds a further supporting point, like 'furthermore'."},
+ {word:"otherwise",pos:"Cohesive device (condition/result)",subject:"Daily life",scenario:"You need to leave at once or you will not catch your train.",prompt:"Which option correctly fills the blank? You must leave now; <strong>___</strong>, you will miss the train.",options:["otherwise","therefore","moreover","likewise"],why:"'Otherwise' means 'if not' — it shows the negative result of not doing something."},
+ {word:"In contrast",pos:"Cohesive device (contrast)",subject:"Social studies",scenario:"Two regions are described as completely different from each other.",prompt:"Which option correctly fills the blank? The north is industrial. <strong>___</strong>, the south is mainly rural.",options:["In contrast","As a result","In addition","For instance"],why:"'In contrast' introduces an opposite or very different idea."},
+ {word:"hence",pos:"Cohesive device (result, formal)",subject:"Science",scenario:"Because the data was incomplete, the results could not be trusted.",prompt:"Which option correctly fills the blank? The data was incomplete; <strong>___</strong>, the conclusions are unreliable.",options:["hence","whereas","meanwhile","similarly"],why:"'Hence' is a formal way of saying 'for this reason' or 'therefore'."},
+ {word:"Likewise",pos:"Cohesive device (similarity)",subject:"Daily life",scenario:"Two people are described as having the same talent.",prompt:"Which option correctly fills the blank? Her brother is a gifted pianist. <strong>___</strong>, she plays beautifully.",options:["Likewise","However","Otherwise","Instead"],why:"'Likewise' means 'in the same way' and links two similar facts."},
+ {word:"play",pos:"Collocation",subject:"Science",scenario:"Diet is one of the things that helps prevent illness.",prompt:"Which option correctly fills the blank? Diet can <strong>___</strong> an important role in preventing disease.",options:["play","make","do","take"],why:"The collocation is 'play a role'."},
+ {word:"make",pos:"Collocation",subject:"School",scenario:"After months of practice, her skills clearly improved.",prompt:"Which option correctly fills the blank? She has begun to <strong>___</strong> real progress in her studies.",options:["make","do","take","reach"],why:"The collocation is 'make progress'."},
+ {word:"reach",pos:"Collocation",subject:"Social studies",scenario:"After a long argument, both sides finally agreed on a middle solution.",prompt:"Which option correctly fills the blank? The two sides managed to <strong>___</strong> a compromise.",options:["reach","make","do","take"],why:"The collocation is 'reach a compromise' (or 'reach an agreement')."},
+ {word:"cause",pos:"Collocation",subject:"School",scenario:"The drop in attendance worried the teachers.",prompt:"Which option correctly fills the blank? The sudden fall in numbers began to <strong>___</strong> concern.",options:["cause","make","give","do"],why:"The collocation is 'cause concern'."},
+ {word:"raise",pos:"Collocation",subject:"Science",scenario:"The findings made people ask serious questions.",prompt:"Which option correctly fills the blank? The results <strong>___</strong> important questions about safety.",options:["raise","make","do","give"],why:"The collocation is 'raise a question' (or 'raise an issue')."},
+ {word:"account",pos:"Phrasal verb",subject:"School",scenario:"These three reasons explain almost the whole problem.",prompt:"Which option correctly fills the blank? These factors <strong>___</strong> for most of the difficulty.",options:["account","answer","explain","count"],why:"'Account for' means to explain or to be the cause of something."},
+ {word:"put",pos:"Phrasal verb (advanced)",subject:"Science",scenario:"The scientist offered a new explanation for the results.",prompt:"Which option correctly fills the blank? She <strong>___</strong> forward a bold new theory.",options:["put","set","bring","take"],why:"'Put forward' means to suggest or propose an idea."},
+ {word:"weigh",pos:"Phrasal verb (advanced)",subject:"Daily life",scenario:"Before deciding, he thought about the good and bad points.",prompt:"Which option correctly fills the blank? You should <strong>___</strong> up the pros and cons before choosing.",options:["weigh","think","balance","measure"],why:"'Weigh up' means to consider something carefully before deciding."},
+ {word:"justification",pos:"Word formation (noun)",subject:"Language arts",scenario:"There was no good reason for behaving so rudely.",prompt:"Which option correctly fills the blank? There was no <strong>___</strong> for such rude behaviour.",options:["justification","justify","justified","justly"],why:"A noun is needed after 'no' — 'justification'."},
+ {word:"significance",pos:"Word formation (noun)",subject:"Social studies",scenario:"Historians still argue about how important the event really was.",prompt:"Which option correctly fills the blank? They still debate the <strong>___</strong> of that discovery.",options:["significance","significant","significantly","signify"],why:"The abstract noun is 'significance'."},
+ {word:"reliability",pos:"Word formation (noun)",subject:"Social studies",scenario:"People doubted whether the witness could be trusted.",prompt:"Which option correctly fills the blank? The <strong>___</strong> of the witness was questioned in court.",options:["reliability","reliable","reliably","rely"],why:"The noun form is 'reliability'."},
+ {word:"in the long run",pos:"Idiom (time)",subject:"Daily life",scenario:"Spending more now will save money over a long period.",prompt:"Which option correctly fills the blank? Buying quality tools saves money <strong>___</strong>.",options:["in the long run","at the long run","on the long run","by the long run"],why:"The fixed expression is 'in the long run', meaning over a long period."},
+ {word:"a double-edged sword",pos:"Idiom (figurative)",subject:"Social studies",scenario:"Fame brings money but also destroys your privacy.",prompt:"Which option correctly fills the blank? Fame is <strong>___</strong>: it has clear benefits but serious drawbacks.",options:["a double-edged sword","a two-sided knife","a sharp blade","a mixed edge"],why:"'A double-edged sword' describes something with both good and bad effects."}
+],
+expert:[
+ {word:"third conditional",pos:"Conditional",subject:"School",scenario:"He missed the bus this morning because he overslept.",prompt:"Which sentence correctly uses the <strong>third conditional</strong>?",options:["If he had woken up earlier, he would have caught the bus.","If he woke up earlier, he would have caught the bus.","If he would have woken up earlier, he had caught the bus.","If he has woken up earlier, he would catch the bus."],why:"Third conditional: 'If + past perfect, would have + past participle'."},
+ {word:"mixed conditional",pos:"Conditional",subject:"Daily life",scenario:"She never learned to drive, so today she cannot accept the job offer.",prompt:"Which sentence correctly uses a <strong>mixed conditional</strong> (past cause, present result)?",options:["If she had learned to drive, she would have a car now.","If she learned to drive, she would have had a car now.","If she would have learned to drive, she would have a car.","If she has learned to drive, she has a car now."],why:"Mixed conditional: past perfect condition with a present 'would + base verb' result."},
+ {word:"conditional inversion",pos:"Conditional (inversion)",subject:"Daily life",scenario:"She regrets not bringing a map on the trip.",prompt:"Which sentence correctly inverts the conditional (without <strong>if</strong>)?",options:["Had I brought a map, we would not have got lost.","Had I brought a map, we would not get lost.","If I had brought a map, we would not got lost.","Have I brought a map, we would not have got lost."],why:"'Had I brought ...' replaces 'If I had brought ...' and needs 'would have + past participle'."},
+ {word:"were it not for",pos:"Conditional (formal)",subject:"Social studies",scenario:"A new sponsor is the only reason the team is still running.",prompt:"Which sentence correctly uses this formal conditional?",options:["Were it not for the sponsor, the team would have collapsed.","Were it not for the sponsor, the team will collapse.","If it were not the sponsor, the team would collapse.","Was it not for the sponsor, the team would have collapse."],why:"'Were it not for + noun' is followed by 'would (have) + verb'."},
+ {word:"should you",pos:"Conditional (inversion)",subject:"Social studies",scenario:"A formal notice offering help to visitors.",prompt:"Which sentence correctly uses the <strong>inverted first conditional</strong>?",options:["Should you require any help, please ask at reception.","Should you required any help, please ask at reception.","Should you will require help, please ask at reception.","If you should requiring help, please ask at reception."],why:"'Should you + base verb' is a formal inversion of 'If you require ...'."},
+ {word:"must have",pos:"Modal (perfect deduction)",subject:"Science",scenario:"The grass is soaking wet this morning, but no one saw any rain.",prompt:"Which sentence correctly expresses a strong deduction about the past?",options:["It must have rained heavily during the night.","It must rained heavily during the night.","It must have been rain heavily during the night.","It must be rained heavily during the night."],why:"'Must have + past participle' expresses a confident deduction about the past."},
+ {word:"should have",pos:"Modal (perfect)",subject:"Daily life",scenario:"He forgot his umbrella and got soaked on the way home.",prompt:"Which sentence correctly criticises a past action?",options:["He should have checked the weather forecast.","He should checked the weather forecast.","He should have check the weather forecast.","He had should check the weather forecast."],why:"'Should have + past participle' expresses regret or criticism about the past."},
+ {word:"reported statement",pos:"Reported speech",subject:"Language arts",scenario:"Maria said: \"I am studying for my exams right now.\"",prompt:"Which sentence correctly reports what Maria said?",options:["Maria said that she was studying for her exams.","Maria said that she is studying for her exams now.","Maria said me that she was studying for her exams.","Maria said that she studying for her exams then."],why:"Reported speech backshifts 'am studying' to 'was studying'."},
+ {word:"reported question",pos:"Reported speech",subject:"Language arts",scenario:"He asked: \"Where do you live?\"",prompt:"Which sentence correctly reports the question?",options:["He asked where I lived.","He asked where did I live.","He asked where do I live?","He asked me where I live."],why:"Reported questions use statement word order, backshift the tense, and take no question mark."},
+ {word:"suggest",pos:"Verb pattern",subject:"Daily life",scenario:"He proposed visiting the museum on Saturday.",prompt:"Which sentence uses <strong>suggest</strong> correctly?",options:["He suggested going to the museum on Saturday.","He suggested me to go to the museum on Saturday.","He suggested to go to the museum on Saturday.","He suggested me going to the museum on Saturday."],why:"'Suggest + -ing' (or 'suggest that ...'); 'suggest someone to do' is incorrect."},
+ {word:"it-cleft",pos:"Emphasis",subject:"Daily life",scenario:"We want to emphasise that it was the rain, not the wind, that ruined the picnic.",prompt:"Which sentence correctly uses an <strong>it-cleft</strong> for emphasis?",options:["It was the rain that ruined the picnic.","It was the rain what ruined the picnic.","It was the rain ruined the picnic.","Was the rain that ruined the picnic."],why:"An it-cleft uses 'It was + focus + that ...'."},
+ {word:"never have I",pos:"Inversion (negative adverb)",subject:"Daily life",scenario:"This is the most delicious meal she has ever eaten.",prompt:"Which sentence correctly uses <strong>negative inversion</strong> for emphasis?",options:["Never have I tasted such delicious food.","Never I have tasted such delicious food.","Never have I taste such delicious food.","Never did I have tasted such delicious food."],why:"After a fronted negative adverb, subject and auxiliary invert: 'Never have I tasted'."},
+ {word:"no sooner ... than",pos:"Inversion",subject:"Daily life",scenario:"The moment they sat down, the lights went out.",prompt:"Which sentence correctly uses <strong>no sooner</strong>?",options:["No sooner had they sat down than the lights went out.","No sooner they had sat down than the lights went out.","No sooner had they sat down when the lights went out.","No sooner did they sit than the lights had gone out."],why:"'No sooner had + subject + past participle than ...' is the fixed structure."},
+ {word:"subjunctive after insist",pos:"Subjunctive",subject:"School",scenario:"The teacher demanded that the student say sorry, with no exception.",prompt:"Which sentence correctly uses the <strong>subjunctive</strong>?",options:["The teacher insisted that he apologise.","The teacher insisted that he apologises.","The teacher insisted that he to apologise.","The teacher insisted him apologising."],why:"After 'insist that', the subjunctive uses the base verb: 'apologise'."},
+ {word:"wish + past perfect",pos:"Unreal past",subject:"Daily life",scenario:"He regrets not saving more money when he was younger.",prompt:"Which sentence correctly expresses regret about the past?",options:["I wish I had saved more money.","I wish I saved more money.","I wish I would have saved more money.","I wish I have saved more money."],why:"'Wish + past perfect' expresses regret about the past."},
+ {word:"causative have",pos:"Causative",subject:"Daily life",scenario:"She did not cut her hair herself; a hairdresser did it for her.",prompt:"Which sentence correctly uses the <strong>causative</strong>?",options:["She had her hair cut at the salon.","She had cut her hair at the salon.","She had her hair cutting at the salon.","She has her hair cut by herself."],why:"The causative is 'have + object + past participle': 'had her hair cut'."}
+]
+};
+
+var READINGS=[
+{id:"r1",title:"The Keeper of the Light",level:"Stage 8",topic:"Narrative",color:"vi",
+ paras:[
+ "Every summer, Theo travelled to the rocky island where his grandfather lived alone in the lighthouse. The journey was long and uncomfortable: a train, a rattling bus, and finally a small boat that bounced across the grey waves. Yet the moment Theo saw the white tower rising above the cliffs, his tiredness vanished.",
+ "His grandfather was not a man of many words. He spent his days checking the great lamp, polishing the brass, and writing careful notes about the weather. At first Theo found the silence strange. There was no television, no internet, only the endless sound of the sea and the cry of gulls. After a few days, though, he began to understand why his grandfather loved the place.",
+ "One evening a thick fog rolled in, swallowing the island. Ships could no longer see the dangerous rocks below the cliffs. Theo watched, fascinated, as his grandfather climbed the spiral stairs and lit the lamp. A powerful beam swept slowly across the water, warning sailors to keep away. \"Without this light,\" his grandfather said quietly, \"a ship could be lost tonight.\"",
+ "That sentence stayed with Theo for years. He realised that his grandfather's lonely, repetitive work was not pointless at all — it protected the lives of people he would never meet. When Theo returned home at the end of the summer, the noisy city felt different. He had learned that the quietest jobs are sometimes the most important."
+ ],
+ qs:[
+ {prompt:"Why did Theo's tiredness disappear when he arrived?",options:["He was excited to see the lighthouse again.","He had slept on the boat.","The journey was actually very short.","He disliked the city he came from."],why:"The text says his tiredness vanished the moment he saw the white tower — he was glad to arrive.",skill:"Detail"},
+ {prompt:"Which word best describes Theo's grandfather based on the passage?",options:["Quiet and dedicated","Loud and cheerful","Lazy and careless","Angry and impatient"],why:"He says little, works carefully every day and takes his duty seriously — quiet and dedicated.",skill:"Inference"},
+ {prompt:"In paragraph 3, what does the word \"swallowing\" suggest about the fog?",options:["It completely covered the island.","It made a loud noise.","It was warm and pleasant.","It disappeared quickly."],why:"'Swallowing the island' is figurative: the fog covered everything so it could not be seen.",skill:"Vocabulary in context"},
+ {prompt:"Why did the grandfather light the lamp that evening?",options:["To warn ships away from the dangerous rocks.","To celebrate Theo's visit.","To read his weather notes.","To attract the gulls."],why:"With ships unable to see the rocks in the fog, the light warned sailors to keep away.",skill:"Detail"},
+ {prompt:"What is the main message of the passage?",options:["Quiet, unnoticed work can be deeply important.","Cities are always better than islands.","Lighthouses are no longer needed today.","Family holidays are usually boring."],why:"Theo learns that his grandfather's lonely work protects lives — the quietest jobs can matter most.",skill:"Main idea"},
+ {prompt:"How does the writer mainly show the change in Theo by the end?",options:["By describing how the city felt different to him.","By saying he became a sailor.","By listing the prizes he won.","By describing a second journey."],why:"The writer shows Theo's change through his new view of the once-ordinary, noisy city.",skill:"Writer's technique"}
+]},
+{id:"r2",title:"The Truth About Teenage Sleep",level:"Stage 8",topic:"Informational article",color:"vi",
+ paras:[
+ "Many adults complain that teenagers are lazy because they stay up late and struggle to wake up in the morning. Scientists, however, have discovered that this behaviour is not simply a matter of choice. During the teenage years, the body's internal clock naturally shifts, making young people feel sleepy later at night and drowsy early in the morning.",
+ "The problem is that most schools begin early, long before a teenager's body is ready to be fully awake. As a result, many students arrive in class tired and find it hard to concentrate. Studies suggest that a lack of sleep can affect memory, mood, and even the ability to make sensible decisions. Far from being lazy, sleep-deprived teenagers are simply working against their own biology.",
+ "Some schools around the world have responded by starting lessons an hour later. The results have been striking. Attendance improved, grades rose, and students reported feeling happier. Critics argue that later start times cause problems for parents and bus timetables, but supporters insist that the benefits for learning are too great to ignore.",
+ "Experts recommend that teenagers aim for between eight and ten hours of sleep each night. Simple habits help: switching off screens an hour before bed, keeping a regular sleep routine, and avoiding caffeine in the evening. Sleep, they remind us, is not a luxury but a basic need — as essential to learning as the lessons themselves."
+ ],
+ qs:[
+ {prompt:"According to the passage, why do teenagers feel sleepy late at night?",options:["Their internal body clock naturally shifts.","They are choosing to be lazy.","They drink too much caffeine in the morning.","They dislike going to school."],why:"The text states the body's internal clock shifts during the teenage years.",skill:"Detail"},
+ {prompt:"What does the writer mean by \"working against their own biology\"?",options:["They are fighting their body's natural needs.","They study biology at school.","They exercise too much.","They refuse to follow any rules."],why:"It means tired teenagers are struggling against the natural way their bodies work.",skill:"Vocabulary in context"},
+ {prompt:"What happened in schools that started lessons later?",options:["Attendance and grades improved.","Students became more tired.","Lessons were cancelled.","Parents stopped sending children to school."],why:"The passage reports improved attendance, higher grades and happier students.",skill:"Detail"},
+ {prompt:"Why does the writer mention the views of critics in paragraph 3?",options:["To present a balanced view of the issue.","To prove that later start times are wrong.","To make the article longer.","To criticise teenagers."],why:"Including critics' concerns gives a fair, balanced view before supporting the change.",skill:"Writer's purpose"},
+ {prompt:"What is the writer's overall attitude towards teenage sleep?",options:["It is a serious need that should be respected.","It is an unimportant topic.","It proves teenagers are lazy.","It cannot be improved."],why:"The writer treats sleep as a basic need, as essential to learning as lessons.",skill:"Tone / attitude"},
+ {prompt:"Which of these is NOT recommended by experts in the passage?",options:["Drinking caffeine in the evening.","Switching off screens before bed.","Keeping a regular routine.","Sleeping eight to ten hours."],why:"Experts advise avoiding caffeine in the evening, so drinking it is not recommended.",skill:"Detail"}
+]},
+{id:"r3",title:"Should Smartphones Be Banned in Schools?",level:"Stage 9",topic:"Discursive essay",color:"vi",
+ paras:[
+ "Few objects are as common in a teenager's pocket as the smartphone. For some, it is an essential tool; for others, it is the greatest distraction ever to enter a classroom. As more schools debate whether to ban these devices entirely, the question deserves careful thought rather than a hasty answer.",
+ "Those in favour of a ban point to the obvious dangers. Phones interrupt concentration with a constant stream of messages and notifications. They make cheating easier and can be used to bully classmates in secret. Several studies have found that simply having a phone nearby, even switched off, lowers a student's ability to focus. From this point of view, removing phones is the simplest way to protect learning.",
+ "Yet the opposing argument is far from weak. Smartphones are powerful learning tools, giving instant access to information, dictionaries, and educational apps. In an emergency, a phone allows a student to contact their family at once. Critics of a ban also argue that schools have a duty to teach young people how to use technology responsibly, rather than removing it altogether. A skill that is never practised, they say, is never learned.",
+ "Perhaps the most sensible solution lies somewhere in the middle. Rather than a total ban, many schools now allow phones at break times but require them to be put away during lessons. Such a policy respects both the benefits and the risks. In the end, the goal is not to win an argument about technology, but to create an environment in which every student can learn."
+ ],
+ qs:[
+ {prompt:"What is the writer's main purpose in this essay?",options:["To examine both sides of a debate before suggesting a balanced solution.","To prove that phones should be banned completely.","To argue that phones cause no problems at all.","To advertise a new educational app."],why:"The writer presents both arguments, then proposes a middle-ground policy — a balanced discussion.",skill:"Writer's purpose"},
+ {prompt:"According to paragraph 2, what did several studies find?",options:["Even a switched-off phone nearby reduces focus.","Phones improve concentration.","Bullying never happens online.","Cheating has become impossible."],why:"The text says simply having a phone nearby, even off, lowers the ability to focus.",skill:"Detail"},
+ {prompt:"What does the phrase \"far from weak\" suggest about the opposing argument?",options:["It is actually quite strong.","It is completely wrong.","It is boring and unclear.","It is too short to matter."],why:"'Far from weak' means the opposite of weak — the argument is strong.",skill:"Vocabulary in context"},
+ {prompt:"Why do critics of a ban believe schools should keep phones?",options:["To teach students to use technology responsibly.","To make lessons more difficult.","To increase the amount of cheating.","To replace teachers with apps."],why:"Critics argue schools should teach responsible use rather than removing technology.",skill:"Inference"},
+ {prompt:"Which solution does the writer appear to prefer?",options:["Allowing phones at breaks but not during lessons.","Banning phones completely.","Allowing phones at all times.","Removing all technology from schools."],why:"The writer calls the middle-ground policy 'the most sensible solution'.",skill:"Inference"},
+ {prompt:"The phrase \"a hasty answer\" in paragraph 1 means an answer that is...",options:["given too quickly, without enough thought.","carefully researched.","very detailed.","completely correct."],why:"'Hasty' means rushed; a hasty answer is given too quickly without proper thought.",skill:"Vocabulary in context"}
+]},
+{id:"r4",title:"The Silent Workers of the Garden",level:"Stage 9",topic:"Science article",color:"vi",
+ paras:[
+ "When we picture the creatures that feed the world, we rarely think of the bee. Yet without these small, busy insects, the shelves of our shops would look very different. Bees and other pollinators carry pollen from flower to flower, allowing plants to produce the fruits, vegetables, and seeds on which much of our food depends.",
+ "In recent decades, scientists have observed a troubling decline in bee populations across many parts of the world. The causes are complex. The widespread use of certain pesticides weakens the insects, while the loss of wild meadows removes the flowers they feed on. Disease and a changing climate add further pressure. No single factor is to blame, which makes the problem especially difficult to solve.",
+ "The consequences of losing pollinators would reach far beyond the disappearance of honey. Roughly a third of the food we eat relies, directly or indirectly, on pollination. If bees vanished, the cost of many crops would soar, and some foods might become rare luxuries. Entire ecosystems, in which countless species depend on flowering plants, could begin to unravel.",
+ "There is, however, room for hope. Individuals can plant wild flowers, avoid harmful chemicals, and support local beekeepers. Governments can protect natural habitats and regulate the most dangerous pesticides. Such actions may seem small against a global problem, but together they can make a genuine difference. The fate of the humble bee, it turns out, is tied closely to our own."
+ ],
+ qs:[
+ {prompt:"Why are bees so important to our food supply?",options:["They pollinate the plants that produce much of our food.","They produce all the world's vegetables themselves.","They keep harmful insects away from crops.","They make the soil richer."],why:"Bees carry pollen between flowers, allowing plants to produce fruits, vegetables and seeds.",skill:"Detail"},
+ {prompt:"According to paragraph 2, why is the decline of bees difficult to solve?",options:["There is no single cause to blame.","Bees are not really declining.","Scientists refuse to study it.","Only one pesticide is responsible."],why:"The text says no single factor is to blame, which makes the problem especially hard to solve.",skill:"Detail"},
+ {prompt:"What does the word \"unravel\" suggest about ecosystems in paragraph 3?",options:["They would gradually fall apart.","They would grow stronger.","They would stay exactly the same.","They would become more colourful."],why:"To 'unravel' is to come apart — the ecosystems would gradually break down.",skill:"Vocabulary in context"},
+ {prompt:"What does the writer mean by saying some foods might become \"rare luxuries\"?",options:["They would become expensive and hard to find.","They would be given away for free.","They would taste much better.","They would be banned by law."],why:"A rare luxury is something costly and uncommon — these foods would be expensive and scarce.",skill:"Inference"},
+ {prompt:"What is the writer's main purpose in the final paragraph?",options:["To suggest that action by people and governments can help.","To say nothing can be done.","To describe how honey is made.","To explain how to keep bees as pets."],why:"The final paragraph offers hope and lists actions individuals and governments can take.",skill:"Writer's purpose"},
+ {prompt:"What is the overall message of the article?",options:["The survival of bees is closely linked to our own future.","Bees are dangerous and should be removed.","Honey is the only reason bees matter.","The decline of bees has already been reversed."],why:"The closing line states the fate of the bee is tied closely to our own — our futures are linked.",skill:"Main idea"}
+]}
+];
+
+var WRITING={
+stage8:{name:"Stage 8 — Article",color:"in",kind:"article",reqWords:120,
+ prompts:[
+ {topic:"Memories",title:"The Best Day of My Life",prompt:"Write an article for your school magazine describing the best day you have ever had. Explain what happened and why it was so special.",audience:"School magazine readers",minWords:120,keywords:["day","best","happy","family","friends","fun","remember","felt","special","because","morning","time","place","enjoy","together","amazing","never","forget","wonderful","favourite"]},
+ {topic:"School life",title:"Why School Uniforms Matter",prompt:"Write an article giving your opinion on whether students should wear a school uniform. Support your view with at least two reasons.",audience:"Students and teachers",minWords:120,keywords:["uniform","school","student","students","wear","clothes","equal","equality","cheap","expensive","identity","pride","rule","rules","opinion","because","fair","time","morning","choose"]},
+ {topic:"Animals",title:"An Animal I Admire",prompt:"Write an article about an animal you find fascinating. Describe it and explain why it deserves our admiration or protection.",audience:"Younger students",minWords:120,keywords:["animal","admire","wild","nature","strong","clever","survive","habitat","protect","amazing","because","example","danger","beautiful","behaviour","hunt","live","species","fascinating","care"]},
+ {topic:"Technology",title:"Life Without Television",prompt:"Write an article imagining a week without any television or streaming. Describe how you would spend your time and what you might learn.",audience:"Your classmates",minWords:120,keywords:["television","tv","screen","watch","time","instead","read","reading","play","outside","family","talk","bored","learn","hobby","week","without","activity","sport","creative"]},
+ {topic:"Ideas",title:"The Most Useful Invention",prompt:"Write an article about the invention you think has changed everyday life the most. Explain what it does and why it is so important.",audience:"Magazine readers",minWords:120,keywords:["invention","useful","change","changed","life","people","important","technology","help","helps","modern","everyday","communicate","travel","example","because","work","faster","easier","world"]},
+ {topic:"Culture",title:"A Festival in My Country",prompt:"Write an article describing a festival or celebration that is important in your country. Explain what people do and why it matters.",audience:"Foreign exchange students",minWords:120,keywords:["festival","celebration","country","culture","tradition","people","family","food","music","dance","colour","colours","important","celebrate","year","because","together","streets","special","joy"]},
+ {topic:"Technology",title:"How to Stay Safe Online",prompt:"Write an article giving other students advice on how to stay safe on the internet. Include at least three practical tips.",audience:"Students your age",minWords:120,keywords:["online","internet","safe","safety","password","private","personal","information","stranger","strangers","share","tip","tips","advice","careful","social","media","never","report","protect"]},
+ {topic:"People",title:"The Person Who Inspires Me",prompt:"Write an article about a person who inspires you. Describe who they are and explain what you have learned from them.",audience:"Magazine readers",minWords:120,keywords:["inspire","person","admire","learn","learned","example","because","kind","hard","work","never","give","up","help","strong","teacher","family","hero","respect","dream"]},
+ {topic:"School life",title:"Should Homework Be Banned?",prompt:"Write an article giving your opinion on whether homework should be banned. Give clear reasons to support your view.",audience:"Teachers and students",minWords:120,keywords:["homework","ban","banned","student","students","school","study","time","stress","learn","practice","opinion","because","free","reason","reasons","teacher","help","tired","rest"]},
+ {topic:"Daily life",title:"My Ideal Weekend",prompt:"Write an article describing your perfect weekend. Explain what you would do, who with, and why it would make you happy.",audience:"Your classmates",minWords:120,keywords:["weekend","perfect","ideal","saturday","sunday","relax","friends","family","fun","sport","sleep","morning","enjoy","because","time","happy","play","favourite","outside","together"]}
+]},
+stage9:{name:"Stage 9 — Essay",color:"cy",kind:"essay",reqWords:200,
+ prompts:[
+ {topic:"Society",title:"Is Fame Worth the Price?",prompt:"Write an argumentative essay discussing whether becoming famous is worth the loss of privacy and freedom it brings. Take a clear position, support it with reasons and examples, and acknowledge the opposing view.",audience:"Academic essay",minWords:200,keywords:["fame","famous","privacy","freedom","price","money","pressure","attention","media","public","life","celebrity","cost","worth","however","although","opinion","argue","because","people"]},
+ {topic:"Technology",title:"Do We Rely Too Much on Machines?",prompt:"Write an essay arguing whether modern society has become too dependent on machines and technology. Defend your position and consider both sides.",audience:"Academic essay",minWords:200,keywords:["machine","machines","technology","rely","dependent","dependence","society","modern","human","skill","skills","computer","work","life","however","although","problem","benefit","because","people"]},
+ {topic:"Education",title:"Should Everyone Go to University?",prompt:"Write an essay arguing whether university is the right choice for everyone, or whether other paths can be equally valuable. Support your argument with reasons.",audience:"Academic essay",minWords:200,keywords:["university","education","student","students","degree","job","jobs","career","skill","skills","money","debt","apprentice","learn","however","although","value","choice","because","success"]},
+ {topic:"Environment",title:"The Cost of Fast Fashion",prompt:"Write an essay analysing the impact of cheap, fast fashion on the environment and on workers. Argue whether the convenience is worth the cost.",audience:"Academic essay",minWords:200,keywords:["fashion","clothes","cheap","fast","environment","pollution","waste","worker","workers","factory","cost","buy","consumer","however","although","planet","sustainable","because","impact","quality"]},
+ {topic:"Society",title:"Can Sport Bring People Together?",prompt:"Write an essay arguing whether sport truly unites people or whether it can also divide them. Use examples to support your view.",audience:"Academic essay",minWords:200,keywords:["sport","sports","people","together","unite","united","team","nation","community","rivalry","divide","fans","play","however","although","example","because","compete","respect","peace"]},
+ {topic:"Society",title:"Is Privacy a Thing of the Past?",prompt:"Write an essay discussing whether personal privacy still exists in a world of social media and constant data collection. Defend your position.",audience:"Academic essay",minWords:210,keywords:["privacy","private","data","information","social","media","online","internet","personal","track","tracking","company","companies","however","although","past","share","because","protect","freedom"]},
+ {topic:"Health",title:"Should Junk Food Be Taxed?",prompt:"Write an essay arguing whether governments should place a tax on unhealthy food and drinks. Consider the consequences and address counterarguments.",audience:"Academic essay",minWords:200,keywords:["junk","food","tax","health","healthy","sugar","government","obesity","price","people","choice","freedom","however","although","because","reduce","problem","cost","diet","responsibility"]},
+ {topic:"Personal growth",title:"The Value of Failure",prompt:"Write an essay arguing whether failure is something to fear or something that can help us grow. Support your view with reasons and examples.",audience:"Academic essay",minWords:200,keywords:["failure","fail","success","learn","mistake","mistakes","grow","fear","try","resilience","however","although","example","because","experience","improve","lesson","strong","value","afraid"]},
+ {topic:"Ethics",title:"Are Zoos Justified?",prompt:"Write an essay arguing whether zoos can be justified in the modern world, or whether keeping wild animals in captivity is wrong. Defend your position.",audience:"Academic essay",minWords:200,keywords:["zoo","zoos","animal","animals","wild","captivity","cage","protect","conservation","education","freedom","cruel","however","although","because","species","habitat","nature","justify","rights"]},
+ {topic:"Culture",title:"Does Travel Truly Broaden the Mind?",prompt:"Write an essay arguing whether travelling really makes people more open-minded and understanding, or whether this idea is exaggerated. Use examples.",audience:"Academic essay",minWords:200,keywords:["travel","travelling","mind","open","culture","cultures","people","experience","understand","different","world","however","although","example","because","learn","tourist","broaden","perspective","abroad"]}
+]}
+};
+
+var LEVELS={
+ beginner:{name:"Beginner",color:"tl",desc:"Read a real situation and choose what the word means."},
+ elementary:{name:"Elementary",color:"bl",desc:"Decide which sentence uses the word correctly."},
+ intermediate:{name:"Intermediate",color:"am",desc:"Fill the blank in a real-life context."},
+ expert:{name:"Expert",color:"co",desc:"Pick the correct advanced structure."}
+};
+var COL={tl:"--tl",bl:"--bl",am:"--am",co:"--co",vi:"--vi",in:"--in",cy:"--cy"};
+var COLL={tl:"--tl-l",bl:"--bl-l",am:"--am-l",co:"--co-l",vi:"--vi-l",in:"--in-l",cy:"--cy-l"};
+var COLD={tl:"--tl-d",bl:"--bl-d",am:"--am-d",co:"--co-d",vi:"--vi-d",in:"--in-d",cy:"--cy-d"};
+var PTS=5, SETSIZE=10;
+var sName="",sCourse="",locked=false,leaveCount=0,pasteBlocks=0,st={};
+
+/* ---- Supabase: every completed attempt is saved to scores_duplicate ---- */
+var SU='https://zdrxqsezxeusxffafsut.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpkcnhxc2V6eGV1c3hmZmFmc3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMDYwNjIsImV4cCI6MjA5MTc4MjA2Mn0.HAB9g3etuP0b4SmbDdD0dcq0riwVizcepBkO8_BFhqE';
+var TP='vocab2025';
+var TABLE='scores_duplicate';
+var db=null;try{if(window.supabase){db=window.supabase.createClient(SU,SK);}}catch(e){console.error('supabase init',e);}
+var dashRows=[],dTimer=null;
+var LVN={beginner:'Beginner',elementary:'Elementary',intermediate:'Intermediate',expert:'Expert',reading:'Reading',stage8:'Stage 8 — Article',stage9:'Stage 9 — Essay'};
+var LVC={beginner:'#0f9e72',elementary:'#1a6fc4',intermediate:'#c47a10',expert:'#c44a28',reading:'#7c3aed',stage8:'#5b45c8',stage9:'#0d8a8a'};
+function today(){return new Date().toISOString().slice(0,10);}
+async function doSave(level,score,essayText,essayTitle,feedback){
+  if(!db)return;
+  try{
+    var row={student:sName.trim(),course:sCourse,level:level,score:score};
+    if(essayText)row.essay_text=essayText;
+    if(essayTitle)row.essay_title=essayTitle;
+    if(feedback){try{row.feedback=JSON.stringify(feedback);}catch(_){}}
+    var r=await db.from(TABLE).insert(row);
+    if(r.error){
+      var r2=await db.from(TABLE).insert({student:sName.trim(),course:sCourse,level:level,score:score});
+      if(r2.error){await db.from(TABLE).insert({student:sName.trim(),level:level,score:score});}
+    }
+  }catch(e){console.error('save',e);}
+}
+
+/* ============ HELPERS ============ */
+function g(id){return document.getElementById(id);}
+function cv(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function showScr(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});g(id).classList.add('active');window.scrollTo(0,0);}
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function toast(m,warn,d){var t=g('toast');t.textContent=m;t.className=warn?'warn':'';void t.offsetWidth;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},d||2800);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function setLock(on){
+  locked=on;
+  if(on){try{history.pushState({lk:1},'');}catch(e){}}
+}
+
+/* ============ ANTI-CHEAT ============ */
+function block(e){if(locked){e.preventDefault();e.stopPropagation();toast("Copying is disabled during the exercise.",true);return false;}}
+document.addEventListener('copy',block,true);
+document.addEventListener('cut',block,true);
+document.addEventListener('paste',function(e){if(locked){e.preventDefault();e.stopPropagation();pasteBlocks++;toast("Pasting is not allowed here.",true);return false;}},true);
+document.addEventListener('contextmenu',function(e){if(locked){e.preventDefault();return false;}});
+document.addEventListener('dragstart',function(e){if(locked)e.preventDefault();});
+document.addEventListener('drop',function(e){if(locked)e.preventDefault();});
+document.addEventListener('keydown',function(e){
+  if(!locked)return;
+  var k=(e.key||'').toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&['c','x','v','a','s','p','u'].indexOf(k)>-1){e.preventDefault();toast("That shortcut is disabled during the exercise.",true);return false;}
+  if(e.key==='F12'){e.preventDefault();return false;}
+},true);
+// leaving the tab / window
+function onLeave(){
+  if(!locked)return;
+  leaveCount++;
+  if(st)st.leaves=leaveCount;
+  toast("Stay on this page! Leaving the exercise is recorded ("+leaveCount+").",true,3400);
+}
+document.addEventListener('visibilitychange',function(){if(document.hidden)onLeave();});
+window.addEventListener('blur',function(){onLeave();});
+// trap browser back button
+window.addEventListener('popstate',function(){
+  if(locked){try{history.pushState({lk:1},'');}catch(e){}toast("You can't go back during the exercise.",true);}
+});
+// warn before closing / reloading mid-exercise
+window.addEventListener('beforeunload',function(e){
+  if(locked){e.preventDefault();e.returnValue='';return '';}
+});
+
+/* ============ NAME / HOME ============ */
+function initName(){
+  g('startBtn').addEventListener('click',doStart);
+  g('nm').addEventListener('keydown',function(e){if(e.key==='Enter')doStart();});
+  g('tlink').addEventListener('click',function(){showScr('s-tl');setTimeout(function(){g('tpass').focus();},80);});
+}
+function doStart(){
+  var n=g('nm').value.trim();
+  var c=g('cs').value;
+  if(!n){toast("Please type your name to start.");g('nm').focus();return;}
+  if(!c){toast("Please select your course.");return;}
+  sName=n;sCourse=c;
+  var initial=n.charAt(0).toUpperCase();
+  g('av').textContent=initial;
+  g('hn').textContent=n+(sCourse?(" · "+sCourse):"");
+  buildHome();
+  showScr('s-home');
+}
+function moduleCard(key,name,desc,colKey,tagText){
+  var c=cv(COL[colKey]),cd=cv(COLD[colKey]),cl=cv(COLL[colKey]);
+  var b=document.createElement('button');
+  b.className='lvc';
+  b.innerHTML='<div class="lvst" style="background:'+c+'"></div>'+
+    '<div class="lvn">'+name+'</div>'+
+    '<div class="lvd">'+desc+'</div>'+
+    '<div class="lvb" style="background:'+cl+';color:'+cd+'">'+tagText+'</div>'+
+    '<div class="lvshape" style="background:'+c+'"></div>';
+  b.addEventListener('click',function(){openModule(key);});
+  return b;
+}
+function buildHome(){
+  var grid=g('lvgrid');grid.innerHTML='';
+  ['beginner','elementary','intermediate','expert'].forEach(function(k){
+    var L=LEVELS[k];
+    grid.appendChild(moduleCard('lv:'+k,L.name,L.desc,L.color,'Practice'));
+  });
+  var rw=g('rwgrid');rw.innerHTML='';
+  rw.appendChild(moduleCard('reading',"Reading","Long Stage 8 & 9 texts with comprehension questions.",'vi','New'));
+  var w8=moduleCard('write:stage8',"Stage 8 — Article","Write an article on a random topic. Instant feedback.",'in','Writing');
+  w8.classList.add('wide');rw.appendChild(w8);
+  var w9=moduleCard('write:stage9',"Stage 9 — Essay","Write an essay on a random topic. Instant feedback.",'cy','Writing');
+  w9.classList.add('wide');rw.appendChild(w9);
+}
+function openModule(key){
+  if(key==='reading'){buildReadingList();showScr('s-readlist');return;}
+  if(key.indexOf('lv:')===0){startMCQ(key.slice(3));return;}
+  if(key.indexOf('write:')===0){startWriting(key.slice(6));return;}
+}
+
+/* ============ READING LIST ============ */
+function buildReadingList(){
+  var grid=g('readgrid');grid.innerHTML='';
+  READINGS.forEach(function(r){
+    var c=cv(COL[r.color]),cd=cv(COLD[r.color]),cl=cv(COLL[r.color]);
+    var b=document.createElement('button');
+    b.className='lvc wide';
+    b.innerHTML='<div class="lvst" style="background:'+c+'"></div>'+
+      '<div class="lvn">'+esc(r.title)+'</div>'+
+      '<div class="lvd">'+r.topic+' · '+r.qs.length+' questions</div>'+
+      '<div class="lvb" style="background:'+cl+';color:'+cd+'">'+r.level+'</div>'+
+      '<div class="lvshape" style="background:'+c+'"></div>';
+    b.addEventListener('click',function(){startReading(r);});
+    grid.appendChild(b);
+  });
+  g('readBack').onclick=function(){showScr('s-home');};
+}
+
+/* ============ QUIZ ENGINE (MCQ + READING) ============ */
+function startMCQ(level){
+  var L=LEVELS[level];
+  var bank=shuf(QUESTIONS[level]).slice(0,Math.min(SETSIZE,QUESTIONS[level].length));
+  st={mode:'mcq',level:level,col:L.color,name:L.name,set:bank,idx:0,score:0,correct:0,streak:0,best:0,leaves:0,passage:null};
+  leaveCount=0;pasteBlocks=0;
+  beginQuiz();
+}
+function startReading(r){
+  st={mode:'reading',level:r.id,col:r.color,name:r.title,set:r.qs.slice(),idx:0,score:0,correct:0,streak:0,best:0,leaves:0,passage:r};
+  leaveCount=0;pasteBlocks=0;
+  beginQuiz();
+}
+function beginQuiz(){
+  setLock(true);
+  var c=cv(COL[st.col]);
+  g('qpill').textContent=st.name;
+  g('qpill').style.background=c;
+  g('qfill').style.background=c;
+  g('nextBtn').style.background=c;
+  // passage panel
+  var pw=g('qpassageWrap');
+  if(st.mode==='reading'){
+    var html='<div class="passage"><h3>'+esc(st.passage.title)+'</h3><div class="pmeta">'+st.passage.level+' · '+st.passage.topic+'</div>';
+    st.passage.paras.forEach(function(p){html+='<p>'+p+'</p>';});
+    html+='</div><div class="preadhint">Scroll the text above as you answer. Read carefully — you can\'t change an answer once chosen.</div>';
+    pw.innerHTML=html;
+  }else{pw.innerHTML='';}
+  showScr('s-quiz');
+  renderQ();
+}
+function renderQ(){
+  var q=st.set[st.idx],c=cv(COL[st.col]),cl=cv(COLL[st.col]),cd=cv(COLD[st.col]);
+  var total=st.set.length;
+  g('qprog').textContent='Question '+(st.idx+1)+' of '+total;
+  g('qstreak').textContent='Streak '+st.streak;
+  g('qfill').style.width=((st.idx)/total*100)+'%';
+  g('qscore').textContent=st.score;
+  g('nextBtn').classList.remove('show');
+  g('nextBtn').textContent=(st.idx+1>=total)?'See results':'Next question';
+
+  // shuffle options keeping track of correct (options[0] is correct in data)
+  var pairs=q.options.map(function(t,i){return{t:t,ok:i===0};});
+  pairs=shuf(pairs);
+  st.curCorrect=pairs.findIndex(function(p){return p.ok;});
+  st.curWhy=q.why;st.curExtra=q.extra||'';
+
+  var card=g('qcard');
+  var letters=['A','B','C','D','E'];
+  var html='';
+  if(st.mode==='reading'){
+    html+='<div class="qtags"><span class="tag tags">'+st.passage.level+'</span>'+(q.skill?'<span class="tag tagt">'+q.skill+'</span>':'')+'</div>';
+    html+='<div class="qp">'+q.prompt+'</div>';
+  }else{
+    html+='<div class="qtags"><span class="tag tags">'+esc(q.subject||'')+'</span><span class="tag tagt">'+esc(q.pos||'')+'</span></div>';
+    if(q.scenario){
+      html+='<div class="schd"><span>In context</span><span class="schl"></span></div>';
+      html+='<div class="sc" style="border-left-color:'+c+'">'+q.scenario+'</div>';
+    }
+    html+='<div class="qp">'+q.prompt+'</div>';
+  }
+  html+='<div class="opts" id="opts">';
+  pairs.forEach(function(p,i){
+    html+='<button class="opt" data-i="'+i+'"><span class="olet">'+letters[i]+'</span><span>'+esc(p.t)+'</span></button>';
+  });
+  html+='</div><div class="expl" id="expl"></div>';
+  card.innerHTML=html;
+  // tint hover via correct color
+  document.querySelectorAll('.opt').forEach(function(o){
+    o.addEventListener('click',function(){doPick(parseInt(o.getAttribute('data-i'),10));});
+  });
+}
+function doPick(i){
+  var opts=document.querySelectorAll('.opt');
+  if(opts[0].disabled)return;
+  opts.forEach(function(o){o.disabled=true;});
+  var correct=st.curCorrect;
+  var good=(i===correct);
+  opts[correct].classList.add('ok');
+  if(!good)opts[i].classList.add('bad');
+  if(good){st.score+=PTS;st.correct++;st.streak++;if(st.streak>st.best)st.best=st.streak;}
+  else{st.streak=0;}
+  g('qscore').textContent=st.score;
+  g('qstreak').textContent='Streak '+st.streak;
+  var ex=g('expl');
+  ex.className='expl '+(good?'good':'bad')+' show';
+  ex.innerHTML='<b>'+(good?'Correct'+(st.streak>=3?' · '+st.streak+' in a row!':''):'Not quite')+'</b>'+st.curWhy+(st.curExtra?'<div class="ex">💡 '+st.curExtra+'</div>':'');
+  g('nextBtn').classList.add('show');
+  g('nextBtn').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function doNext(){
+  st.idx++;
+  if(st.idx>=st.set.length){finishQuiz();return;}
+  renderQ();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function finishQuiz(){
+  setLock(false);
+  var total=st.set.length,pct=Math.round(st.correct/total*100);
+  var saveLevel=st.mode==='reading'?'reading':st.level;
+  var saveTitle=st.mode==='reading'?st.passage.title:'';
+  doSave(saveLevel,pct,'',saveTitle,{correct:st.correct,total:total,integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}});
+  var c=cv(COL[st.col]);
+  var band,msg;
+  if(pct>=85){band="Excellent";msg="Outstanding work. You're well prepared for this part of the quiz.";}
+  else if(pct>=70){band="Strong";msg="Great job — you've got a solid grip on this. A little more practice and it's perfect.";}
+  else if(pct>=50){band="Getting there";msg="A good effort. Read the explanations again and try another round to lock it in.";}
+  else{band="Keep practising";msg="Don't worry — this is exactly what practice is for. Review the explanations and go again.";}
+  var circ=2*Math.PI*64, off=circ*(1-pct/100);
+  var leaveNote=st.leaves>0?'<div class="rmsg" style="color:var(--er-t)">⚠ You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'. In the real quiz, that would be flagged.</div>':'';
+  var s=g('s-result');
+  s.innerHTML='<div class="rainbow"></div><div class="rwrap">'+
+    '<div class="ring"><svg width="150" height="150"><circle cx="75" cy="75" r="64" fill="none" stroke="'+cv('--c3')+'" stroke-width="11"/><circle cx="75" cy="75" r="64" fill="none" stroke="'+c+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'"/></svg>'+
+    '<div class="ringtx"><div class="ringn" style="color:'+c+'">'+pct+'%</div><div class="ringl">Score</div></div></div>'+
+    '<div class="rband" style="color:'+c+'">'+band+'</div>'+
+    '<div class="rmsg">'+msg+'</div>'+leaveNote+
+    '<div class="rstats">'+
+      '<div class="rstat"><div class="rsn">'+st.correct+'/'+total+'</div><div class="rsl">Correct</div></div>'+
+      '<div class="rstat"><div class="rsn">'+st.score+'</div><div class="rsl">Points</div></div>'+
+      '<div class="rstat"><div class="rsn">'+st.best+'</div><div class="rsl">Best streak</div></div>'+
+    '</div>'+
+    '<div class="rbtns"><button class="rbtn pri" id="rAgain" style="background:'+c+'">Practise again</button>'+
+    '<button class="rbtn sec" id="rHome">Back to menu</button></div></div>';
+  g('rAgain').onclick=function(){
+    if(st.mode==='reading'){startReading(st.passage);}else{startMCQ(st.level);}
+  };
+  g('rHome').onclick=function(){showScr('s-home');};
+  showScr('s-result');
+}
+
+/* ============ WRITING ENGINE ============ */
+var CONNECTIVES=["however","although","because","therefore","moreover","furthermore","in addition","for example","for instance","on the other hand","firstly","secondly","finally","in conclusion","as a result","nevertheless","whereas","despite","in contrast","also","besides","meanwhile","since","thus","hence","while","yet","so that","such as","to sum up","overall","in my opinion","i believe","i think"];
+function startWriting(stage){
+  var W=WRITING[stage];
+  var p=W.prompts[Math.floor(Math.random()*W.prompts.length)];
+  st={mode:'write',stage:stage,col:W.color,cfg:W,prompt:p,leaves:0};
+  leaveCount=0;pasteBlocks=0;
+  setLock(true);
+  var c=cv(COL[W.color]);
+  g('wtag').textContent=W.name;g('wtag').style.background=c;
+  g('wtitle').textContent=p.title;
+  g('wprompt').textContent=p.prompt;
+  g('waud').innerHTML='<b>Audience:</b> '+esc(p.audience)+' &nbsp;·&nbsp; <b>Aim for at least</b> '+p.minWords+' words';
+  g('wta').value='';g('wta').style.borderColor='';
+  g('wsubmit').style.background=c;
+  g('wnum').textContent='0';
+  g('wgoal').textContent='/ '+p.minWords;
+  g('wready').textContent='';
+  g('wsubmit').disabled=true;
+  showScr('s-write');
+  g('wta').focus();
+}
+function countWords(s){var t=(s||'').trim();return t?t.split(/\s+/).length:0;}
+function onWrite(){
+  var n=countWords(g('wta').value),min=st.prompt.minWords;
+  g('wnum').textContent=n;
+  if(n>=min){g('wready').innerHTML='<b style="color:var(--ok-b)">✓ Ready to submit</b>';g('wsubmit').disabled=false;}
+  else{g('wready').textContent=(min-n)+' more words to reach the minimum';g('wsubmit').disabled=true;}
+}
+function analyzeWriting(text,p){
+  var words=text.trim().split(/\s+/).filter(Boolean);
+  var wc=words.length;
+  var sentences=text.split(/[.!?]+/).map(function(s){return s.trim();}).filter(function(s){return s.length>1;});
+  var sc=sentences.length||1;
+  var paras=text.split(/\n\s*\n/).map(function(s){return s.trim();}).filter(Boolean);
+  var pc=paras.length;
+  var low=text.toLowerCase();
+  var conn=CONNECTIVES.filter(function(c){return low.indexOf(c)>-1;});
+  // relevance: unique topic keywords used
+  var hits=p.keywords.filter(function(k){return new RegExp('\\b'+k.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&')+'\\b','i').test(low);});
+  var relevance=Math.min(100,Math.round(hits.length/Math.min(10,p.keywords.length)*100));
+  // sentence variety: std dev of sentence lengths (in words)
+  var lens=sentences.map(function(s){return s.split(/\s+/).filter(Boolean).length;});
+  var avg=lens.reduce(function(a,b){return a+b;},0)/(lens.length||1);
+  var variance=lens.reduce(function(a,b){return a+(b-avg)*(b-avg);},0)/(lens.length||1);
+  var sd=Math.sqrt(variance);
+  // accuracy proxy: penalise lowercase 'i', missing capitals, very long sentences
+  var loneI=(text.match(/\bi\b/g)||[]).length;
+  var runOns=lens.filter(function(l){return l>35;}).length;
+  var capStart=sentences.filter(function(s){return /^[a-z]/.test(s);}).length;
+  return {wc:wc,sc:sc,pc:pc,conn:conn,relevance:relevance,hits:hits.length,avg:avg,sd:sd,loneI:loneI,runOns:runOns,capStart:capStart,min:p.minWords};
+}
+function scoreWriting(a){
+  // Content & ideas (relevance + length)
+  var lenRatio=Math.min(1,a.wc/(a.min*1.1));
+  var content=Math.round((a.relevance*0.6 + lenRatio*100*0.4));
+  // Structure (paragraphs + connectives)
+  var structure=Math.round(Math.min(100,(Math.min(a.pc,4)/4*55)+(Math.min(a.conn.length,6)/6*45)));
+  // Vocabulary (connective range + relevant topic words)
+  var vocab=Math.round(Math.min(100,(Math.min(a.conn.length,7)/7*50)+(Math.min(a.hits,10)/10*50)));
+  // Sentence variety
+  var variety=Math.round(Math.min(100, (a.sd>=6?100:a.sd/6*100)*0.7 + (a.sc>=6?100:a.sc/6*100)*0.3));
+  // Accuracy proxy
+  var acc=100; acc-=a.loneI*6; acc-=a.runOns*8; acc-=a.capStart*6; acc=Math.max(20,Math.min(100,acc));
+  var overall=Math.round((content*0.3+structure*0.22+vocab*0.2+variety*0.13+acc*0.15));
+  return {content:content,structure:structure,vocab:vocab,variety:variety,acc:acc,overall:Math.max(0,Math.min(100,overall))};
+}
+function buildFeedback(a,sc,p){
+  var good=[],work=[];
+  if(a.wc>=p.minWords) good.push("You reached the word count ("+a.wc+" words) — good for developing your ideas fully.");
+  else work.push("Aim for at least "+p.minWords+" words; you wrote "+a.wc+". More detail strengthens your argument.");
+  if(a.pc>=3) good.push("You organised your writing into "+a.pc+" paragraphs, which helps the reader follow your ideas.");
+  else work.push("Use clear paragraphs (introduction, two or three middle paragraphs, conclusion). You used "+a.pc+".");
+  if(a.conn.length>=4) good.push("Strong use of connectives ("+a.conn.slice(0,6).join(", ")+") — your ideas link smoothly.");
+  else work.push("Use more connectives (however, moreover, as a result, in conclusion) to link your ideas.");
+  if(a.relevance>=70) good.push("Your writing stays clearly on topic and answers the task.");
+  else work.push("Keep closer to the task: use more vocabulary related to the title to show full relevance.");
+  if(a.sd>=6) good.push("Good sentence variety — mixing short and long sentences keeps the writing lively.");
+  else work.push("Vary your sentence length. Mix short, punchy sentences with longer, complex ones.");
+  if(a.loneI>0) work.push("Remember to capitalise the pronoun 'I' every time ("+a.loneI+" found in lower case).");
+  if(a.runOns>0) work.push(a.runOns+" sentence"+(a.runOns>1?"s are":" is")+" very long — consider breaking "+(a.runOns>1?"them":"it")+" up.");
+  if(a.capStart>0) work.push("Start every sentence with a capital letter ("+a.capStart+" did not).");
+  if(p.kind==='essay'){
+    if(a.conn.indexOf("however")>-1||a.conn.indexOf("on the other hand")>-1||a.conn.indexOf("although")>-1||a.conn.indexOf("whereas")>-1||a.conn.indexOf("in contrast")>-1) good.push("You acknowledged another point of view — exactly what a Stage 9 essay needs.");
+    else work.push("In an essay, address the opposing view (use 'however', 'although', 'on the other hand') before defending your own.");
+  }
+  if(good.length===0)good.push("You completed the task — that's the first step. Keep building from here.");
+  return {good:good.slice(0,5),work:work.slice(0,6)};
+}
+function gradeWriting(){
+  var text=g('wta').value;
+  var a=analyzeWriting(text,st.prompt);
+  var sc=scoreWriting(a);
+  var fb=buildFeedback(a,sc,st.prompt);
+  setLock(false);
+  var c=cv(COL[st.col]);
+  var pct=sc.overall;
+  var band;
+  if(pct>=80)band="Excellent draft";else if(pct>=65)band="Good draft";else if(pct>=50)band="Developing draft";else band="Keep working";
+  doSave(st.stage,pct,text,st.prompt.title,{bands:{content:sc.content,structure:sc.structure,vocabulary:sc.vocab,variety:sc.variety,accuracy:sc.acc},summary:band+' — practice score '+pct+'/100.',good:fb.good,work:fb.work,integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}});
+  var circ=2*Math.PI*64, off=circ*(1-pct/100);
+  function bar(label,val){
+    return '<div class="fbrow"><div class="fblbl">'+label+'</div><div class="fbbar"><div class="fbfill" style="width:'+val+'%;background:'+c+'"></div></div><div class="fbval">'+val+'</div></div>';
+  }
+  var goodLi=fb.good.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');
+  var workLi=fb.work.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');
+  var leaveNote=st.leaves>0?'<div class="rmsg" style="color:var(--er-t)">⚠ You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'.</div>':'';
+  var s=g('s-wresult');
+  s.innerHTML='<div class="rainbow"></div><div class="rwrap">'+
+    '<div class="ring"><svg width="150" height="150"><circle cx="75" cy="75" r="64" fill="none" stroke="'+cv('--c3')+'" stroke-width="11"/><circle cx="75" cy="75" r="64" fill="none" stroke="'+c+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'"/></svg>'+
+    '<div class="ringtx"><div class="ringn" style="color:'+c+'">'+pct+'</div><div class="ringl">Practice score</div></div></div>'+
+    '<div class="rband" style="color:'+c+'">'+band+'</div>'+
+    '<div class="rmsg">This is a practice estimate to guide you — not your official grade. Use the feedback below to improve before the real quiz.</div>'+leaveNote+'</div>'+
+    '<div class="fbcard"><div class="fbh">📊 Skills breakdown</div>'+
+      bar("Content & ideas",sc.content)+bar("Structure",sc.structure)+bar("Vocabulary",sc.vocab)+bar("Sentence variety",sc.variety)+bar("Accuracy (estimate)",sc.acc)+'</div>'+
+    '<div class="fbcard"><div class="fbh">✅ What you did well</div><ul class="fblist good">'+goodLi+'</ul></div>'+
+    '<div class="fbcard"><div class="fbh">🎯 What to work on</div><ul class="fblist work">'+workLi+'</ul></div>'+
+    '<div class="rbtns"><button class="rbtn pri" id="wAgain" style="background:'+c+'">New topic</button>'+
+    '<button class="rbtn sec" id="wHome">Back to menu</button></div>';
+  g('wAgain').onclick=function(){startWriting(st.stage);};
+  g('wHome').onclick=function(){showScr('s-home');};
+  showScr('s-wresult');
+  window.scrollTo(0,0);
+}
+
+/* ============ TEACHER DASHBOARD ============ */
+function initTeacher(){
+  g('tlbtn').addEventListener('click',doTeacherLogin);
+  g('tpass').addEventListener('keydown',function(e){if(e.key==='Enter')doTeacherLogin();});
+  g('tbk').addEventListener('click',function(){showScr('s-name');});
+  g('dex').addEventListener('click',function(){if(dTimer){clearInterval(dTimer);dTimer=null;}showScr('s-name');});
+  g('rfbtn').addEventListener('click',loadDash);
+  g('fdate').addEventListener('change',loadDash);
+  g('fcourse').addEventListener('change',loadDash);
+  g('factiv').addEventListener('change',loadDash);
+  g('dlbtn').addEventListener('click',exportBackup);
+}
+function doTeacherLogin(){
+  if(g('tpass').value===TP){
+    g('perr').style.display='none';
+    if(!g('fdate').value)g('fdate').value=today();
+    showScr('s-dash');loadDash();
+    if(dTimer)clearInterval(dTimer);
+    dTimer=setInterval(loadDash,30000);
+  }else{g('perr').style.display='block';}
+}
+async function loadDash(){
+  if(!db){g('dtbl').innerHTML='<div class="emptyd">Supabase is not connected (check your internet).</div>';return;}
+  g('dtbl').innerHTML='<div class="emptyd">Loading…</div>';
+  var dateStr=(g('fdate')&&g('fdate').value)||today();
+  var courseF=g('fcourse')?g('fcourse').value:'';
+  var activF=g('factiv')?g('factiv').value:'';
+  var start=dateStr+'T00:00:00.000Z';
+  var end=new Date(new Date(start).getTime()+86400000).toISOString();
+  try{
+    var r=await db.from(TABLE).select('*').gte('created_at',start).lt('created_at',end).order('created_at',{ascending:false});
+    if(r.error||!r.data){g('dtbl').innerHTML='<div class="emptyd">Could not load data. Check the connection or that the '+TABLE+' table exists.</div>';return;}
+    var rows=r.data;
+    if(courseF)rows=rows.filter(function(x){return (x.course||'')===courseF;});
+    if(activF)rows=rows.filter(function(x){return x.level===activF;});
+    dashRows=rows;
+    var hd=g('dhd');if(hd)hd.textContent='Results '+(dateStr===today()?'today':dateStr)+(courseF?' · '+courseF:'')+(activF?' · '+(LVN[activF]||activF):'')+' ('+rows.length+')';
+    renderDash(rows);
+  }catch(e){g('dtbl').innerHTML='<div class="emptyd">Connection error: '+esc(e.message)+'</div>';}
+}
+function renderDash(rows){
+  var total=rows.length;
+  var avg=total?Math.round(rows.reduce(function(a,r){return a+(r.score||0);},0)/total):0;
+  var pass=rows.filter(function(r){return (r.score||0)>=60;}).length;
+  var pr=total?Math.round(pass/total*100):0;
+  var lc={};rows.forEach(function(r){lc[r.level]=(lc[r.level]||0)+1;});
+  var tlv=Object.entries(lc).sort(function(a,b){return b[1]-a[1];})[0];
+  g('mtot').textContent=total;g('mavg').textContent=total?avg:'--';
+  g('mpass').textContent=total?pr+'%':'--';
+  g('mtop').textContent=tlv?(LVN[tlv[0]]||tlv[0]):'--';
+  var lo=['beginner','elementary','intermediate','expert','reading','stage8','stage9'];
+  var bl='';
+  lo.forEach(function(lv){
+    var rv=rows.filter(function(x){return x.level===lv;});if(!rv.length)return;
+    var a=Math.round(rv.reduce(function(s,x){return s+(x.score||0);},0)/rv.length);
+    bl+='<div class="brow"><span class="bl">'+LVN[lv]+'</span><div class="bt"><div class="bf" style="width:'+a+'%;background:'+LVC[lv]+'"></div></div><span class="bv">'+a+'</span></div>';
+  });
+  g('dbylv').innerHTML=bl||'<div class="emptyd">No data yet</div>';
+  var bk=[{l:'90-100',mn:90,mx:100,c:'#0f9e72'},{l:'70-89',mn:70,mx:89,c:'#3daa6f'},{l:'50-69',mn:50,mx:69,c:'#c47a10'},{l:'0-49',mn:0,mx:49,c:'#c44a28'}];
+  var di='';
+  bk.forEach(function(b){
+    var cnt=rows.filter(function(r){return (r.score||0)>=b.mn&&(r.score||0)<=b.mx;}).length;
+    var pct=total?Math.round(cnt/total*100):0;
+    di+='<div class="brow"><span class="bl">'+b.l+'</span><div class="bt"><div class="bf" style="width:'+pct+'%;background:'+b.c+'"></div></div><span class="bv">'+cnt+'</span></div>';
+  });
+  g('ddist').innerHTML=di||'<div class="emptyd">No data yet</div>';
+  if(!rows.length){g('dtbl').innerHTML='<div class="emptyd">No practice results for this day yet.</div>';return;}
+  function pf(s){return s>=80?['Excellent','#145c35','#e8f7ef']:s>=60?['Good','#633806','#fdf0d8']:['Needs work','#712b13','#fdeee9'];}
+  var trs=rows.map(function(r,idx){
+    var tm=new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    var pff=pf(r.score||0);
+    var readBtn=r.essay_text?' <button class="readbtn" data-row="'+idx+'">📖 Read</button>':'';
+    var flag='';try{var fbp=r.feedback?JSON.parse(r.feedback):null;if(fbp&&fbp.integrity){var ts=fbp.integrity.tabSwitches||0,pb=fbp.integrity.pasteBlocked||0;if(ts>0||pb>0)flag=' <span title="Left the page '+ts+' time(s); paste blocked '+pb+' time(s)" style="color:#c44a28;font-weight:900;cursor:help">⚠</span>';}}catch(_){}
+    return '<tr><td style="font-weight:700">'+esc(r.student||'')+(r.course?'<div style="font-size:11px;font-weight:600;color:var(--tx2)">'+esc(r.course)+'</div>':'')+'</td><td><span class="lvdot" style="background:'+(LVC[r.level]||'#888')+'"></span>'+(LVN[r.level]||r.level)+'</td><td><strong>'+(r.score||0)+'</strong>/100<div class="sct"><div class="scf" style="width:'+(r.score||0)+'%;background:'+((r.score||0)>=60?'#0f9e72':'#c44a28')+'"></div></div></td><td><span class="perfb" style="background:'+pff[2]+';color:'+pff[1]+'">'+pff[0]+'</span>'+flag+readBtn+'</td><td style="color:#b0aea4;font-size:12px">'+tm+'</td></tr>';
+  }).join('');
+  g('dtbl').innerHTML='<table class="stbl"><thead><tr><th>Student</th><th>Activity</th><th>Score</th><th>Performance</th><th>Time</th></tr></thead><tbody>'+trs+'</tbody></table>';
+  g('dtbl').querySelectorAll('.readbtn').forEach(function(b){b.addEventListener('click',function(){openEssay(rows[parseInt(this.getAttribute('data-row'),10)]);});});
+}
+function openEssay(r){
+  var fb=null;try{fb=r.feedback?JSON.parse(r.feedback):null;}catch(_){}
+  var h='';
+  if(fb&&fb.bands){
+    h+='<div class="emb-bands">'+['content','structure','vocabulary','variety','accuracy'].map(function(k){var v=fb.bands[k]||0;var c=v>=80?'#0f9e72':v>=60?'#c47a10':'#c44a28';return '<div class="emb-b"><span>'+k.charAt(0).toUpperCase()+k.slice(1)+'</span><b style="color:'+c+'">'+v+'</b></div>';}).join('')+'</div>';
+    if(fb.summary)h+='<div class="emb-sum">'+esc(fb.summary)+'</div>';
+    if(fb.work&&fb.work.length)h+='<div class="emb-sum"><b>To work on:</b> '+esc(fb.work.slice(0,3).join(' · '))+'</div>';
+  }
+  if(fb&&fb.integrity&&((fb.integrity.tabSwitches||0)>0||(fb.integrity.pasteBlocked||0)>0)){
+    h+='<div style="margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--er-bg);border:1.5px solid var(--er-b);color:var(--er-t);font-size:12.5px;font-weight:700">⚠ Left the page <b>'+(fb.integrity.tabSwitches||0)+'</b> time(s); paste blocked <b>'+(fb.integrity.pasteBlocked||0)+'</b> time(s).</div>';
+  }
+  var txt=(r.essay_text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  g('emodal').innerHTML='<div class="emodal-card"><div class="emodal-top"><div><div class="emodal-name">'+esc(r.student||'')+'</div><div class="emodal-meta">'+(r.course?esc(r.course)+' · ':'')+(LVN[r.level]||r.level)+(r.essay_title?' · '+esc(r.essay_title):'')+' · Score: <b>'+(r.score||0)+'</b>/100</div></div><button class="emodal-x" id="emx">✕</button></div>'+h+'<div class="emodal-lbl">Student\'s writing</div><div class="emodal-text">'+txt+'</div></div>';
+  g('emodal').classList.add('show');
+  g('emx').addEventListener('click',function(){g('emodal').classList.remove('show');});
+  g('emodal').addEventListener('click',function(e){if(e.target===g('emodal'))g('emodal').classList.remove('show');});
+}
+function csvCell(v){v=(v==null?'':String(v));if(/[",\n\r]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function exportBackup(){
+  var rows=dashRows||[];
+  if(!rows.length){toast('No results to export for these filters.');return;}
+  var dateStr=(g('fdate')&&g('fdate').value)||today();
+  var courseF=g('fcourse')?g('fcourse').value:'';
+  var activF=g('factiv')?g('factiv').value:'';
+  var head=['Date','Time','Course','Student','Activity','Score/100','Correct','Left page','Paste blocked','Title','Text'];
+  var aoa=[head];
+  rows.forEach(function(r){
+    var d=new Date(r.created_at);
+    var fb=null;try{fb=r.feedback?JSON.parse(r.feedback):null;}catch(_){}
+    var correct=(fb&&fb.correct!=null)?(fb.correct+'/'+fb.total):'';
+    var ts=(fb&&fb.integrity)?(fb.integrity.tabSwitches||0):'';
+    var pb=(fb&&fb.integrity)?(fb.integrity.pasteBlocked||0):'';
+    aoa.push([d.toLocaleDateString(),d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),r.course||'',r.student||'',LVN[r.level]||r.level||'',r.score,correct,ts,pb,r.essay_title||'',r.essay_text||'']);
+  });
+  var base='vocabquest_practice_'+dateStr+(courseF?'_'+courseF:'')+(activF?'_'+activF:'');
+  if(typeof XLSX!=='undefined'){
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols']=[{wch:11},{wch:7},{wch:7},{wch:24},{wch:22},{wch:9},{wch:8},{wch:9},{wch:13},{wch:22},{wch:70}];
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Results');
+    XLSX.writeFile(wb,base+'.xlsx');
+    toast('Excel downloaded ('+rows.length+' rows).');
+  }else{
+    var csv='\ufeff'+aoa.map(function(row){return row.map(csvCell).join(',');}).join('\r\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=base+'.csv';document.body.appendChild(a);a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},120);
+    toast('Excel library not loaded — downloaded CSV instead.');
+  }
+}
+
+/* ============ WIRING ============ */
+initName();
+initTeacher();
+g('nextBtn').addEventListener('click',doNext);
+g('wta').addEventListener('input',onWrite);
+g('wsubmit').addEventListener('click',gradeWriting);
+</script>
+</body>
+</html>
