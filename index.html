@@ -7,387 +7,1115 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
+/* ============================================================
+   VOCABULARY QUEST — PRACTICE · hoja de estilos
+   Mismo rediseno que la version de examen. Los acentos
+   (#0f9e72 #1a6fc4 #c47a10 #c44a28 #7c3aed #5b45c8 #0d8a8a)
+   tambien viven en el JS: si cambias uno, cambialo alli.
+   El coral #f4694a es el color de la portada.
+   ============================================================ */
 :root{
-  --tl:#0f9e72;--tl-l:#e0f5ee;--tl-d:#085041;
+  --tl:#0f9e72;--tl-l:#e0f5ee;--tl-m:#5dcaa5;--tl-d:#085041;
   --bl:#1a6fc4;--bl-l:#e8f2fb;--bl-d:#0c447c;
   --am:#c47a10;--am-l:#fdf0d8;--am-d:#633806;
   --co:#c44a28;--co-l:#fdeee9;--co-d:#712b13;
   --vi:#7c3aed;--vi-l:#f1ecfe;--vi-d:#4a1d96;
   --in:#5b45c8;--in-l:#eeecfd;--in-d:#3b2a9c;
   --cy:#0d8a8a;--cy-l:#dcf2f2;--cy-d:#085656;
-  --ok-bg:#e8f7ef;--ok-b:#3daa6f;--ok-t:#145c35;
-  --er-bg:#fdeaea;--er-b:#d94f4f;--er-t:#7a1a1a;
-  --bg:#f7f6f2;--card:#fff;--c2:#f0efe9;--c3:#e4e3dd;
-  --tx:#18180f;--tx2:#6b6a60;--tx3:#b0aea4;
-  --bd:#e2e0d8;--bd2:#c8c6bc;
+  --pu:#5b45c8;--pu-l:#eeecfd;--pu-d:#3b2a9c;
+  /* coral de la portada */
+  --cr:#f4694a;--cr-d:#d1462a;--cr-t:#8f2d16;
+  --ok-bg:#e9f9f0;--ok-b:#3daa6f;--ok-t:#145c35;
+  --er-bg:#fdeced;--er-b:#d94f4f;--er-t:#7a1a1a;
+  --bg:#f8f7f3;--card:#fff;--c2:#f2f1ec;--c3:#e6e4dc;
+  --tx:#171713;--tx2:#6a6960;--tx3:#a9a79d;
+  --bd:#e8e6de;--bd2:#d3d1c7;
+  /* elevacion: sombras en capas, muy suaves para fondo claro */
+  --s1:0 1px 2px rgba(24,24,15,.04),0 2px 8px rgba(24,24,15,.04);
+  --s2:0 2px 6px rgba(24,24,15,.05),0 10px 26px rgba(24,24,15,.07);
+  --s3:0 6px 14px rgba(24,24,15,.07),0 22px 50px rgba(24,24,15,.12);
+  --r:16px;--r2:20px;
+  --e:cubic-bezier(.22,1,.36,1);      /* entradas: arranca rapido, frena suave */
+  --e2:cubic-bezier(.4,0,.2,1);       /* hover y estados */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 .lock,.lock *{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;-webkit-tap-highlight-color:transparent}
-#app{max-width:680px;margin:0 auto;padding:20px 16px 80px}
-.screen{display:none}.screen.active{display:block;animation:fade .35s ease}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.screen.active{animation:none}*{transition:none!important}}
-.rainbow{height:4px;border-radius:2px;margin-bottom:22px;background:linear-gradient(90deg,#0f9e72,#1a6fc4,#7c3aed,#c47a10,#c44a28)}
-.badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;background:var(--vi-l);color:var(--vi-d)}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;
+  background:var(--bg);color:var(--tx);min-height:100vh;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow-x:hidden;position:relative;-webkit-tap-highlight-color:transparent;
+}
+/* Manchas de color muy tenues al fondo. Fijas, decorativas, sin capturar clics. */
+body::before{
+  content:"";position:fixed;inset:-20vmax;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(38vmax 38vmax at 12% 8%,rgba(15,158,114,.13),transparent 62%),
+    radial-gradient(34vmax 34vmax at 88% 2%,rgba(26,111,196,.12),transparent 60%),
+    radial-gradient(32vmax 32vmax at 92% 82%,rgba(124,58,237,.10),transparent 60%),
+    radial-gradient(30vmax 30vmax at 6% 92%,rgba(196,122,16,.10),transparent 60%);
+  animation:drift 26s var(--e2) infinite alternate;
+}
+#app{max-width:none;margin:0 auto;padding:20px 22px 76px;position:relative}
+/* Cada pantalla pide el ancho que necesita: el quiz quiere una linea de lectura
+   comoda, el panel del profesor quiere sitio para la tabla. */
+#s-home,#s-quiz,#s-result,#s-wresult,#s-write,#s-dash,#s-readlist{width:100%;margin:0 auto}
+#s-home{max-width:1280px}
+#s-quiz{max-width:1180px}
+#s-readlist{max-width:1100px}
+#s-result,#s-wresult{max-width:940px}
+#s-write{max-width:1120px}
+#s-dash{max-width:1280px}
+.screen{display:none}
+.screen.active{display:block;animation:scrIn .5s var(--e) both}
 
-/* NAME */
-.nwrap{min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.nlogo{width:54px;height:54px;border-radius:16px;background:var(--tl);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 8px 22px rgba(15,158,114,.32)}
-.nlogo svg{width:27px;height:27px;stroke:#fff;stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.ntitle{font-size:35px;font-weight:900;letter-spacing:-1.6px;margin:14px 0 6px;line-height:1.08}
-.ntitle span{color:var(--tl)}
-.nsub{font-size:14px;color:var(--tx2);line-height:1.65;max-width:360px;margin:0 auto 26px}
-.ncard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:26px 22px;width:100%;max-width:390px;text-align:left}
+/* ============================ ANIMACIONES ============================ */
+@keyframes scrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pop{0%{opacity:0;transform:scale(.86)}60%{transform:scale(1.03)}100%{opacity:1;transform:scale(1)}}
+@keyframes popSm{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+@keyframes floatn{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(0,-18px,0) scale(1.05)}}
+@keyframes drift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(0,-3%,0) scale(1.06)}}
+@keyframes hue{from{background-position:0% 50%}to{background-position:200% 50%}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes wsp{to{transform:rotate(360deg)}}
+@keyframes sheen{from{transform:translateX(-120%)}to{transform:translateX(220%)}}
+@keyframes grow{from{width:0}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-9px)}}
+@keyframes twinkle{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes tilt{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-3deg)}}
+
+/* Barra de colores de cabecera */
+.rainbow{
+  height:4px;border-radius:99px;margin-bottom:22px;
+  background:linear-gradient(90deg,#0f9e72,#1a6fc4,#7c3aed,#c47a10,#c44a28,#0f9e72);
+  background-size:200% 100%;animation:hue 9s linear infinite;
+}
+
+/* ============================ ATOMOS ============================ */
 .flbl{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px}
-.finp{width:100%;padding:12px 14px;border:1.5px solid var(--bd2);border-radius:10px;font-size:15px;background:var(--bg);color:var(--tx);font-family:inherit;outline:none;transition:border-color .2s}
-.finp:focus{border-color:var(--tl)}
-.bigbtn{width:100%;margin-top:14px;padding:14px;border-radius:10px;border:none;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--tl);transition:opacity .15s,transform .12s}
-.bigbtn:hover{opacity:.9;transform:translateY(-1px)}
-.bigbtn:focus-visible{outline:3px solid var(--tl-l);outline-offset:2px}
+.finp{
+  width:100%;padding:13px 15px;border:1.5px solid var(--bd2);border-radius:12px;font-size:15px;
+  background:var(--card);color:var(--tx);font-family:inherit;outline:none;
+  transition:border-color .2s var(--e2),box-shadow .2s var(--e2),background .2s;
+}
+.finp:hover{border-color:var(--tx3)}
+.finp:focus{border-color:var(--cr);box-shadow:0 0 0 4px rgba(244,105,74,.15)}
+.bigbtn{
+  width:100%;margin-top:12px;padding:15px;border-radius:12px;border:none;font-size:15px;font-weight:800;
+  cursor:pointer;font-family:inherit;color:#fff;position:relative;overflow:hidden;isolation:isolate;
+  transition:transform .16s var(--e2),box-shadow .16s var(--e2),filter .16s;
+}
+/* brillo que cruza el boton al pasar el raton */
+.bigbtn::after{
+  content:"";position:absolute;inset:0 auto 0 0;width:45%;z-index:-1;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:translateX(-120%);
+}
+.bigbtn:hover{transform:translateY(-2px);filter:saturate(1.08)}
+.bigbtn:hover::after{animation:sheen .75s var(--e2)}
+.bigbtn:active{transform:translateY(0) scale(.99)}
+.bigbtn.b{background:linear-gradient(135deg,#2079d0,#155a9f);box-shadow:0 6px 18px rgba(26,111,196,.30)}
+.bigbtn.b:hover{box-shadow:0 10px 26px rgba(26,111,196,.38)}
+.tlink,.backl{
+  margin-top:16px;background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;
+  font-family:inherit;text-decoration:underline;text-underline-offset:3px;padding:5px;transition:color .18s;
+}
+.tlink:hover,.backl:hover{color:var(--tx2)}
+.backl{display:block;text-align:center;margin-top:12px}
+
+/* ============================ PORTADA ============================ */
+/* Libros, cuaderno y lapiz dibujados con SVG en linea: ni una imagen que
+   descargar. Ocupa la ventana entera saliendose de #app con position:fixed. */
+#s-name.active{position:fixed;inset:0;z-index:5;overflow-y:auto;background:var(--card);display:block}
+.nsplit{display:grid;grid-template-columns:50% 50%;min-height:100vh}
+.nleft{
+  position:relative;overflow:hidden;padding:46px 48px;display:flex;flex-direction:column;
+  justify-content:space-between;gap:18px;
+  background:linear-gradient(168deg,#ffffff 0%,#f4faf8 46%,#e9f4f5 100%);
+}
+.nblob{position:absolute;border-radius:50%;opacity:.5;filter:blur(3px)}
+.nb1{width:250px;height:250px;background:#ffe3d8;top:-88px;right:-60px}
+.nb2{width:180px;height:180px;background:#d8f0ea;bottom:-56px;left:-50px}
+.nlin{position:relative;z-index:2}
+.nbrand{display:flex;align-items:center;gap:12px;margin-bottom:26px;animation:fadeUp .5s var(--e) both}
+.nlogo{
+  width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;background:var(--cr);box-shadow:0 4px 0 var(--cr-d);animation:pop .6s var(--e) both;
+}
+.nlogo svg{width:23px;height:23px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
+.nbname{font-size:13.5px;font-weight:800;letter-spacing:-.1px;color:var(--cr-d)}
+.nbmeta{font-size:11.5px;color:var(--tx2)}
+.nbadge-pill{
+  display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 11px;border-radius:99px;background:var(--vi-l);color:var(--vi-d);margin-bottom:14px;
+  animation:fadeUp .5s var(--e) .04s both;
+}
+.ntitle{
+  font-size:clamp(30px,3.3vw,45px);font-weight:900;letter-spacing:-2px;line-height:1.03;
+  color:var(--tx);margin-bottom:14px;animation:fadeUp .55s var(--e) .06s both;
+}
+.ntitle span{color:var(--cr)}
+.nsub{font-size:14.5px;color:#5b6b86;line-height:1.68;max-width:410px;animation:fadeUp .55s var(--e) .12s both}
+.nart{
+  position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;
+  min-height:0;animation:fadeUp .6s var(--e) .18s both;
+}
+.nart svg{width:100%;height:auto;max-height:300px}
+.ncard-w{animation:bob 4s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+.ncard-w:nth-of-type(2){animation-delay:-1.6s}
+.ndot{animation:twinkle 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.npencil{animation:tilt 5s ease-in-out infinite;transform-box:fill-box;transform-origin:70% 80%}
+.nstats{
+  position:relative;z-index:2;display:flex;gap:34px;flex-wrap:wrap;padding-top:18px;
+  animation:fadeUp .55s var(--e) .24s both;
+}
+.nsv{font-size:26px;font-weight:900;letter-spacing:-.9px;color:var(--tx)}
+.nsl{font-size:10.5px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+
+.nright{background:var(--card);display:flex;align-items:center;justify-content:center;padding:46px 48px 66px;position:relative}
+.nrin{width:100%;max-width:376px;animation:fadeUp .55s var(--e) .2s both}
+.nrh{font-size:27px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+.nrs{font-size:13.5px;color:var(--cr);font-weight:600;margin-bottom:24px;line-height:1.6}
+.nright .flbl{color:#5b6b86}
+.nright .finp{background:var(--bg)}
+/* Boton con relieve: se hunde al pulsarlo, como el de un juego. */
+.nright .bigbtn{
+  border-radius:14px;font-weight:900;background:var(--cr);
+  box-shadow:0 5px 0 var(--cr-d),0 10px 22px rgba(244,105,74,.32);
+  transition:transform .12s var(--e2),box-shadow .12s var(--e2);
+}
+.nright .bigbtn:hover{transform:translateY(2px);box-shadow:0 3px 0 var(--cr-d),0 8px 18px rgba(244,105,74,.32);filter:none}
+.nright .bigbtn:active{transform:translateY(5px);box-shadow:0 0 0 var(--cr-d),0 4px 10px rgba(244,105,74,.28)}
 .nhint{font-size:11px;color:var(--tx3);margin-top:12px;text-align:center;line-height:1.5}
+.nfoot{text-align:center;margin-top:14px}
+.nrain{
+  position:absolute;left:48px;right:48px;bottom:24px;height:4px;border-radius:99px;
+  background:linear-gradient(90deg,#7c3aed,#1a6fc4,#0d8a8a,#0f9e72,#c47a10,#f4694a,#7c3aed);
+  background-size:200% 100%;animation:hue 9s linear infinite;
+}
 
-/* HOME */
-.htop{display:flex;align-items:center;gap:13px;padding:16px 0 12px}
-.av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;background:var(--tl);flex-shrink:0}
+/* ============================ LOGIN DEL PROFESOR ============================ */
+/* Mismo panel lateral que la portada pero en azul: se distingue de un
+   vistazo que estas en el lado de la profesora. */
+#s-tl.active{position:fixed;inset:0;z-index:5;overflow-y:auto;background:var(--card);display:block}
+.tsplit{display:grid;grid-template-columns:47% 53%;min-height:100vh}
+.tleft{
+  position:relative;overflow:hidden;padding:56px 52px;display:flex;flex-direction:column;
+  justify-content:space-between;gap:34px;
+  background:linear-gradient(150deg,#0b3f74 0%,#12579c 44%,#1a6fc4 74%,#3f5fd0 130%);
+}
+.tshape{position:absolute;border-radius:50%;background:rgba(255,255,255,.09);animation:floatn 15s var(--e2) infinite alternate}
+.ts1{width:330px;height:330px;top:-120px;right:-110px}
+.ts2{width:210px;height:210px;bottom:-80px;left:-70px;background:rgba(255,255,255,.07);animation-delay:-5s}
+.ts3{width:110px;height:110px;top:46%;right:14%;background:rgba(255,255,255,.06);animation-delay:-9s}
+.tlin{position:relative;z-index:1}
+.tico{
+  width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;
+  margin:0 0 30px;animation:pop .6s var(--e) both;
+}
+.tico svg{width:24px;height:24px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round}
+.tth{
+  font-size:clamp(32px,3.2vw,46px);font-weight:900;letter-spacing:-2px;line-height:1.05;
+  color:#fff;margin-bottom:16px;animation:fadeUp .55s var(--e) .06s both;
+}
+.tth span{color:#bfdcff}
+.ttp{font-size:15.5px;color:rgba(255,255,255,.9);line-height:1.7;max-width:420px;animation:fadeUp .55s var(--e) .12s both}
+.tbullets{margin-top:28px;display:grid;gap:12px;animation:fadeUp .55s var(--e) .18s both}
+.tbu{display:flex;gap:11px;align-items:center;color:#fff;font-size:14px;font-weight:600}
+.tbk{
+  width:23px;height:23px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;
+  align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;
+}
+.tstats{
+  position:relative;z-index:1;display:flex;gap:36px;flex-wrap:wrap;padding-top:24px;
+  border-top:1px solid rgba(255,255,255,.25);animation:fadeUp .55s var(--e) .24s both;
+}
+.tsv{font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px}
+.tsl{font-size:11px;font-weight:700;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.tright{background:var(--card);display:flex;align-items:center;justify-content:center;padding:56px 52px 72px;position:relative}
+.trin{width:100%;max-width:390px;animation:fadeUp .55s var(--e) .2s both}
+.trh{font-size:26px;font-weight:900;letter-spacing:-1px;margin-bottom:7px}
+.trs{font-size:14px;color:var(--tx2);margin-bottom:26px;line-height:1.6}
+.tright .finp{background:var(--bg)}
+.tright .finp:focus{border-color:var(--bl);box-shadow:0 0 0 4px rgba(26,111,196,.13)}
+.tfoot{text-align:center;margin-top:6px}
+.train{
+  position:absolute;left:52px;right:52px;bottom:28px;height:4px;border-radius:99px;
+  background:linear-gradient(90deg,#1a6fc4,#5b45c8,#0f9e72,#1a6fc4);
+  background-size:200% 100%;animation:hue 9s linear infinite;
+}
+.errmsg{font-size:12px;color:var(--er-t);margin-top:10px;display:none;font-weight:600;text-align:center;animation:shake .5s var(--e2)}
+
+/* ============================ HOME ============================ */
+.htop{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0 10px;flex-wrap:wrap}
+.hi{display:flex;align-items:center;gap:13px;min-width:0}
+.awrap{border-radius:50%;padding:3px;flex-shrink:0;animation:pop .5s var(--e) both;background:linear-gradient(135deg,var(--cr),#f7b93f)}
+.av{
+  width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:800;color:#fff;letter-spacing:.5px;background:var(--cr);
+}
 .hg{font-size:13px;color:var(--tx2);margin-bottom:1px}
-.hn{font-size:19px;font-weight:800;letter-spacing:-.3px}
-.hdesc{font-size:13px;color:var(--tx2);margin:4px 0 18px;line-height:1.55}
-.sect{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin:18px 0 10px}
-.lvgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.lvc{background:var(--card);border:1.5px solid var(--bd);border-radius:18px;padding:18px 16px;cursor:pointer;text-align:left;transition:transform .15s,box-shadow .15s,border-color .15s;font-family:inherit;position:relative;overflow:hidden}
-.lvc:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.09);border-color:var(--bd2)}
-.lvc:focus-visible{outline:3px solid var(--c3);outline-offset:2px}
-.lvst{height:4px;border-radius:2px;margin-bottom:13px;width:42px}
-.lvn{font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:-.2px}
-.lvd{font-size:12px;color:var(--tx2);line-height:1.45}
-.lvb{font-size:10px;font-weight:800;margin-top:10px;padding:3px 9px;border-radius:8px;display:inline-block;letter-spacing:.03em}
-.lvshape{position:absolute;bottom:-16px;right:-16px;width:66px;height:66px;border-radius:50%;opacity:.08}
-.wide{grid-column:1 / -1}
-.hft{text-align:center;font-size:11px;color:var(--tx3);padding-top:22px;line-height:1.6}
-/* MODULE QUEST PATH */
-.path{position:relative}
-.pstep{display:flex;align-items:stretch;gap:12px;position:relative}
-.prail{width:44px;flex-shrink:0;display:flex;justify-content:center;position:relative}
-.pline{position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:0;width:3px;background:var(--c3);border-radius:2px}
-.path .pstep:first-child .pline{top:50%}
-.path .pstep:last-child .pline{bottom:50%}
-.pnode{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;align-self:center;z-index:2;box-shadow:0 0 0 4px var(--bg),0 4px 10px rgba(0,0,0,.12)}
-.pcard{flex:1;min-width:0;background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:12px 14px;margin:6px 0;cursor:pointer;text-align:left;font-family:inherit;display:flex;align-items:center;gap:10px;transition:transform .14s,box-shadow .14s,border-color .14s}
-.pcard:hover{transform:translateX(4px);box-shadow:0 8px 22px rgba(0,0,0,.08);border-color:var(--bd2)}
-.pcard:focus-visible{outline:3px solid var(--c3);outline-offset:2px}
-.pctx{flex:1;min-width:0}
-.pcn{font-size:15px;font-weight:800;letter-spacing:-.2px;display:block}
-.pcd{font-size:12px;color:var(--tx2);line-height:1.4;display:block;margin-top:2px}
-.pct{font-size:10px;font-weight:800;padding:4px 9px;border-radius:8px;white-space:nowrap;flex-shrink:0}
-.pchev{font-size:20px;color:var(--tx3);flex-shrink:0;line-height:1}
-/* START SCREEN TRAIL */
-.nseq{display:flex;align-items:center;justify-content:center;margin:2px auto 26px}
-.nseq .sd{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 3px var(--bg);z-index:2}
-.nseq .sl{width:18px;height:3px;background:var(--c3)}
+.hn{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.crs{
+  font-size:11px;font-weight:800;padding:4px 11px;border-radius:99px;letter-spacing:.04em;
+  background:var(--vi-l);color:var(--vi-d);align-self:center;white-space:nowrap;
+}
+.crs:empty{display:none}
+/* Salir es una accion secundaria: en reposo pasa desapercibida y solo toma color
+   al pasar el raton, para que no compita con los modulos. */
+.exitbtn{
+  display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:99px;
+  border:1px solid transparent;background:none;color:var(--tx3);font-size:13px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:all .18s var(--e2);
+}
+.exitbtn svg{
+  width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;
+  stroke-linecap:round;stroke-linejoin:round;transition:transform .22s var(--e);
+}
+.exitbtn:hover{background:var(--co-l);color:var(--co-d);border-color:#f0c3b2}
+.exitbtn:hover svg{transform:translateX(-3px)}
+.exitbtn:focus-visible{outline:2px solid var(--co);outline-offset:2px}
+.hdesc{font-size:14px;color:var(--tx2);line-height:1.7;max-width:74ch;margin:2px 0 4px}
 
-/* QUIZ */
-.gtop{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.gpill{font-size:11px;font-weight:800;padding:5px 12px;border-radius:20px;letter-spacing:.03em;white-space:nowrap;color:#fff}
-.gpw{flex:1;display:flex;flex-direction:column;gap:4px}
-.gtrk{height:6px;background:var(--c3);border-radius:3px;overflow:hidden}
-.gfill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
-.gmeta{font-size:11px;color:var(--tx3);display:flex;justify-content:space-between}
-.gscore{font-size:13px;font-weight:800;padding:5px 11px;border-radius:18px;background:var(--card);border:1.5px solid var(--bd);white-space:nowrap;min-width:48px;text-align:center}
-.passage{background:var(--card);border:1.5px solid var(--bd);border-radius:16px;padding:18px 18px;margin-bottom:12px;max-height:300px;overflow-y:auto}
-.passage h3{font-size:16px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
-.passage .pmeta{font-size:11px;color:var(--tx3);font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
-.passage p{font-size:14px;line-height:1.75;margin-bottom:11px;color:var(--tx)}
-.preadhint{font-size:11px;color:var(--tx3);text-align:center;margin-bottom:12px}
-.qcard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:22px 20px;margin-bottom:12px}
-.qtags{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:9px;letter-spacing:.03em}
-.tags{background:var(--c2);color:var(--tx2)}.tagt{background:var(--vi-l);color:var(--vi)}
-.wbox{border-radius:12px;padding:14px 18px;margin-bottom:14px;text-align:center;background:var(--tl-l)}
-.wh{font-size:25px;font-weight:900;letter-spacing:-.5px;margin-bottom:2px}
-.wp{font-size:10px;font-weight:700;opacity:.6;letter-spacing:.05em;text-transform:uppercase}
-.schd{font-size:10px;font-weight:700;letter-spacing:.07em;color:var(--tx3);text-transform:uppercase;margin-bottom:7px;display:flex;align-items:center;gap:7px}
-.schl{flex:1;height:1px;background:var(--bd)}
-.sc{background:var(--c2);border-left:4px solid var(--tl);border-radius:0 10px 10px 0;padding:13px 15px;font-size:14px;line-height:1.7;margin-bottom:14px}
-.sc em{font-style:normal;font-weight:700;color:var(--tl-d)}
-.sc strong{font-weight:800}
-.qp{font-size:15px;font-weight:700;line-height:1.45;margin-bottom:14px}
-.qp strong{color:var(--tl-d)}
-.opts{display:grid;gap:9px}
-.opt{background:var(--bg);border:1.5px solid var(--bd2);border-radius:11px;padding:12px 14px;font-size:13.5px;line-height:1.45;text-align:left;cursor:pointer;color:var(--tx);transition:all .14s;font-family:inherit;display:flex;align-items:flex-start;gap:9px;width:100%}
-.opt:hover:not(:disabled){background:var(--tl-l);border-color:var(--tl);transform:translateY(-1px)}
+/* --- los cuatro niveles, dibujados como un recorrido --- */
+.route{position:relative;margin-bottom:4px}
+.rline{
+  /* translateY centra la linea justo en el eje de los circulos (42px = su radio) */
+  position:absolute;top:42px;transform:translateY(-50%);left:12.5%;right:12.5%;height:4px;border-radius:99px;opacity:.3;
+  background:linear-gradient(90deg,#0f9e72,#1a6fc4,#c47a10,#c44a28);
+}
+.rgrid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.rnode{
+  background:none;border:none;padding:0;font-family:inherit;text-align:center;cursor:pointer;
+  animation:fadeUp .5s var(--e) both;
+  /* Un boton dentro de una rejilla se centra en la fila en vez de estirarse, y eso
+     bajaba los circulos respecto a la linea. Estirandolo, todos quedan alineados. */
+  align-self:stretch;display:flex;flex-direction:column;
+}
+.rnode:nth-child(1){animation-delay:.04s}.rnode:nth-child(2){animation-delay:.1s}
+.rnode:nth-child(3){animation-delay:.16s}.rnode:nth-child(4){animation-delay:.22s}
+.rdot{
+  width:84px;height:84px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;
+  justify-content:center;font-size:29px;font-weight:900;color:#fff;border:6px solid var(--bg);
+  box-shadow:var(--s2);transition:transform .22s var(--e),box-shadow .22s var(--e);
+}
+.rcard{
+  flex:1;background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:24px 20px;
+  box-shadow:var(--s1);transition:transform .2s var(--e),box-shadow .2s var(--e),border-color .2s;
+}
+.rnode:hover .rcard{transform:translateY(-4px);box-shadow:var(--s3);border-color:var(--bd2)}
+.rnode:hover .rdot{transform:scale(1.08);box-shadow:var(--s3)}
+.rnode:active .rcard{transform:translateY(-1px)}
+.rnode:focus-visible .rcard{outline:2px solid var(--tl);outline-offset:3px}
+.rn{font-size:19px;font-weight:800;margin-bottom:7px;letter-spacing:-.4px}
+.rd{font-size:14px;color:var(--tx2);line-height:1.6;margin-bottom:14px;min-height:67px}
+.rq{font-size:12px;font-weight:700;padding:5px 12px;border-radius:99px;display:inline-block}
+
+/* --- lectura y los dos retos de escritura --- */
+.lvgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:12px}
+.lvgrid.g2{grid-template-columns:1fr 1fr}
+.lvc{
+  background:var(--card);border:1px solid var(--bd);border-radius:var(--r2);padding:26px;
+  cursor:pointer;text-align:left;font-family:inherit;position:relative;overflow:hidden;
+  box-shadow:var(--s1);display:flex;flex-direction:column;
+  transition:transform .2s var(--e),box-shadow .2s var(--e),border-color .2s;
+  animation:fadeUp .5s var(--e) both;
+}
+.lvgrid .lvc:nth-child(1){animation-delay:.28s}.lvgrid .lvc:nth-child(2){animation-delay:.34s}
+.lvgrid .lvc:nth-child(3){animation-delay:.4s}.lvgrid .lvc:nth-child(n+4){animation-delay:.46s}
+.lvc:hover{transform:translateY(-4px);box-shadow:var(--s3);border-color:var(--bd2)}
+.lvc:active{transform:translateY(-1px)}
+.lvc:focus-visible{outline:2px solid var(--vi);outline-offset:3px}
+.lvc:hover .lvshape{transform:scale(1.45) translate(-8px,-8px);opacity:.13}
+.lvst{height:4px;border-radius:99px;margin-bottom:13px;width:30px;transition:width .3s var(--e)}
+.lvc:hover .lvst{width:100%}
+.lvgr{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.lvn{font-size:20px;font-weight:800;margin-bottom:7px;letter-spacing:-.4px}
+.lvd{font-size:14.5px;color:var(--tx2);line-height:1.6;margin-bottom:15px;flex:1}
+.wtop{display:flex;gap:6px;flex-wrap:wrap;position:relative;z-index:1}
+.wtp{font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;background:var(--c2);color:var(--tx2)}
+.lvshape{
+  position:absolute;bottom:-18px;right:-18px;width:74px;height:74px;border-radius:50%;opacity:.07;
+  transition:transform .45s var(--e),opacity .3s;
+}
+.wsec-hd{
+  display:flex;align-items:center;gap:12px;margin:30px 0 18px;font-size:12px;font-weight:800;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);
+}
+.wsec-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--bd),transparent)}
+.hft{text-align:center;font-size:11px;color:var(--tx3);padding-top:18px;line-height:1.7}
+
+/* ============================ QUIZ ============================ */
+/* La situacion se lee grande y centrada, como el texto de un examen, y el
+   bloque se centra en el alto para que no quede media pantalla vacia. */
+#s-quiz.active{display:flex;flex-direction:column;min-height:calc(100vh - 104px)}
+#qbody{flex:1;display:flex;flex-direction:column;justify-content:center}
+.gtop{
+  display:flex;align-items:center;gap:16px;margin-bottom:20px;background:var(--card);
+  border:1px solid var(--bd);border-radius:99px;padding:9px 10px 9px 16px;box-shadow:var(--s1);
+}
+.gpill{font-size:11px;font-weight:800;padding:6px 14px;border-radius:99px;letter-spacing:.04em;white-space:nowrap;color:#fff}
+.gpw{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.gtrk{position:relative;height:9px;background:var(--c3);border-radius:99px;overflow:hidden}
+.gfill{height:100%;border-radius:99px;transition:width .55s var(--e)}
+/* separadores: una marca por pregunta, para que se vea cuantas quedan */
+.gtrk::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,
+    transparent 0 calc(var(--seg,5%) - 2px),
+    var(--card) calc(var(--seg,5%) - 2px) var(--seg,5%));
+}
+.gmeta{font-size:11px;color:var(--tx3);display:flex;justify-content:space-between;gap:8px}
+.gscore{
+  font-size:15px;font-weight:900;width:46px;height:46px;border-radius:50%;background:var(--bg);
+  border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.qcard{
+  background:var(--card);border:1px solid var(--bd);border-radius:22px;
+  padding:28px 32px 30px;box-shadow:var(--s2);text-align:center;
+  animation:fadeUp .4s var(--e) both;
+}
+.qtags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.tag{font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;letter-spacing:.04em}
+.tags{background:var(--c2);color:var(--tx2)}
+.tagt{background:var(--vi-l);color:var(--vi-d)}
+.sc{font-size:20px;line-height:1.75;margin:16px auto 0;max-width:78ch;color:var(--tx)}
+.sc em{font-style:normal;font-weight:700;color:var(--tl-d);background:rgba(15,158,114,.13);padding:2px 8px;border-radius:6px}
+.qp{font-size:22px;font-weight:800;line-height:1.4;letter-spacing:-.4px;margin-top:22px}
+.qp strong{font-weight:900}
+.opts{display:grid;gap:14px;margin-top:18px}
+.opts.c4{grid-template-columns:repeat(4,1fr)}
+.opts.c2{grid-template-columns:repeat(2,1fr)}
+.opts.c1{grid-template-columns:1fr}
+.opt{
+  background:var(--card);border:1.5px solid var(--bd2);border-radius:18px;padding:20px 18px;
+  font-size:14.5px;line-height:1.55;text-align:left;cursor:pointer;color:var(--tx);font-family:inherit;
+  display:flex;align-items:flex-start;gap:13px;box-shadow:var(--s1);
+  transition:background .16s,border-color .16s,transform .18s var(--e),box-shadow .18s;
+  animation:fadeUp .4s var(--e) both;
+}
+/* en cuatro columnas la letra va arriba y el texto debajo, como una ficha */
+.opts.c4 .opt{flex-direction:column;gap:14px;min-height:150px}
+.opts .opt:nth-child(1){animation-delay:.04s}.opts .opt:nth-child(2){animation-delay:.09s}
+.opts .opt:nth-child(3){animation-delay:.14s}.opts .opt:nth-child(4){animation-delay:.19s}
+.opt:hover:not(:disabled){background:var(--tl-l);border-color:var(--tl-m);transform:translateY(-5px);box-shadow:var(--s3)}
+.opt:active:not(:disabled){transform:translateY(0)}
 .opt:disabled{cursor:default}
-.opt:focus-visible{outline:3px solid var(--c3);outline-offset:1px}
-.olet{font-weight:800;font-size:12px;width:20px;height:20px;border-radius:6px;background:var(--c3);color:var(--tx2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.opt.ok{background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok-t);font-weight:600}
-.opt.ok .olet{background:var(--ok-b);color:#fff}
-.opt.bad{background:var(--er-bg);border-color:var(--er-b);color:var(--er-t)}
-.opt.bad .olet{background:var(--er-b);color:#fff}
-.expl{margin-top:14px;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.6;display:none}
-.expl.show{display:block;animation:fade .3s ease}
-.expl.good{background:var(--ok-bg);color:var(--ok-t)}
-.expl.bad{background:var(--er-bg);color:var(--er-t)}
-.expl b{display:block;margin-bottom:3px;font-size:12px;letter-spacing:.03em;text-transform:uppercase}
-.expl .ex{margin-top:7px;font-style:italic;opacity:.85}
-.nextbtn{width:100%;padding:13px;border-radius:11px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--tl);display:none}
-.nextbtn.show{display:block;animation:fade .3s ease}
-.nextbtn:hover{opacity:.9}
+.opt:focus-visible{outline:2px solid var(--tl);outline-offset:2px}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok-t);animation:popSm .4s var(--e)}
+.opt.bad{background:var(--er-bg);border-color:var(--er-b);color:var(--er-t);animation:shake .45s var(--e2)}
+.optk{
+  min-width:30px;height:30px;border-radius:10px;background:var(--c3);display:flex;align-items:center;
+  justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;color:var(--tx2);transition:all .16s;
+}
+.opts.c4 .optk{min-width:36px;height:36px;font-size:14px;border-radius:11px}
+.opt:hover:not(:disabled) .optk{background:var(--tl-m);color:#fff}
+.opt.ok .optk{background:var(--ok-b);color:#fff}
+.opt.bad .optk{background:var(--er-b);color:#fff}
+.optt{flex:1}
+.fb{border-radius:14px;padding:17px 19px;margin-top:16px;font-size:13.5px;line-height:1.7;border:1.5px solid;animation:fadeUp .35s var(--e) both}
+.fb.ok{background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok-t)}
+.fb.bad{background:var(--er-bg);border-color:var(--er-b);color:var(--er-t)}
+.fb-hd{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+.fb-badge{padding:4px 10px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.05em}
+.fb.ok .fb-badge{background:var(--ok-b);color:#fff}
+.fb.bad .fb-badge{background:var(--er-b);color:#fff}
+.fb-ti{font-weight:800;font-size:14.5px}
+.fb-ex{margin-top:11px;padding:11px 14px;border-radius:10px;background:rgba(0,0,0,.045);font-size:12.5px;line-height:1.65}
+.fb-el{font-weight:700;font-size:10px;letter-spacing:.05em;text-transform:uppercase;opacity:.72;margin-bottom:3px}
+.nxtbtn{
+  display:block;width:100%;margin-top:14px;padding:15px;border-radius:14px;border:1.5px solid var(--bd2);
+  background:var(--card);font-size:14.5px;font-weight:800;cursor:pointer;color:var(--tx);font-family:inherit;
+  text-align:center;transition:all .18s var(--e2);animation:fadeUp .35s var(--e) .06s both;
+}
+.nxtbtn:hover{background:var(--nc,var(--tl));border-color:var(--nc,var(--tl));color:#fff;transform:translateY(-2px);box-shadow:var(--s2)}
+.nxtbtn:active{transform:translateY(0)}
 
-/* WRITING */
-.wtop{margin-bottom:14px}
-.wtag{font-size:11px;font-weight:800;letter-spacing:.04em;padding:5px 12px;border-radius:20px;color:#fff;display:inline-block;margin-bottom:10px}
-.wtitle{font-size:21px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px;line-height:1.15}
-.wprompt{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:15px 16px;font-size:14px;line-height:1.65;color:var(--tx);margin-bottom:8px}
-.waud{font-size:12px;color:var(--tx2);margin-bottom:14px}
-.waud b{color:var(--tx)}
-.wta{width:100%;min-height:240px;padding:15px;border:1.5px solid var(--bd2);border-radius:14px;font-size:14px;line-height:1.7;font-family:inherit;resize:vertical;background:var(--card);color:var(--tx);outline:none;transition:border-color .2s}
-.wta:focus{border-color:var(--in)}
-.wcount{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--tx2);margin:10px 2px}
-.wcount b{font-weight:800}
-.wsubmit{width:100%;margin-top:12px;padding:14px;border-radius:11px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:var(--in)}
-.wsubmit:hover{opacity:.9}
-.wsubmit:disabled{opacity:.45;cursor:not-allowed}
+/* --- el texto de comprension lectora --- */
+.passage{
+  background:var(--card);border:1px solid var(--bd);border-left:5px solid var(--vi);
+  border-radius:20px;padding:22px 26px;box-shadow:var(--s2);margin-bottom:16px;
+  max-height:34vh;overflow-y:auto;animation:fadeUp .45s var(--e) both;
+}
+.passage h3{font-size:19px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px}
+.pmeta{font-size:11px;font-weight:700;color:var(--vi-d);background:var(--vi-l);display:inline-block;padding:3px 10px;border-radius:99px;margin-bottom:12px}
+.passage p{font-size:15.5px;line-height:1.8;color:var(--tx);margin-bottom:12px;max-width:80ch}
+.passage p:last-child{margin-bottom:0}
+.preadhint{font-size:11.5px;color:var(--tx3);text-align:center;margin-bottom:14px}
 
-/* RESULT */
-.rwrap{text-align:center;padding-top:6px}
-.ring{width:150px;height:150px;margin:8px auto 14px;position:relative}
-.ring svg{transform:rotate(-90deg)}
-.ringtx{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ringn{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1}
-.ringl{font-size:11px;font-weight:700;color:var(--tx2);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
-.rband{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:5px}
-.rmsg{font-size:14px;color:var(--tx2);line-height:1.6;max-width:420px;margin:0 auto 18px}
-.rstats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
-.rstat{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:14px 8px}
-.rsn{font-size:22px;font-weight:900;letter-spacing:-.5px}
-.rsl{font-size:11px;color:var(--tx2);margin-top:3px;font-weight:600}
-.fbcard{background:var(--card);border:1.5px solid var(--bd);border-radius:16px;padding:18px;text-align:left;margin-bottom:12px}
-.fbh{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:11px;display:flex;align-items:center;gap:8px}
-.fbrow{display:flex;align-items:center;gap:10px;margin-bottom:11px}
-.fbrow:last-child{margin-bottom:0}
-.fblbl{font-size:13px;font-weight:600;width:130px;flex-shrink:0}
-.fbbar{flex:1;height:8px;background:var(--c3);border-radius:4px;overflow:hidden}
-.fbfill{height:100%;border-radius:4px}
-.fbval{font-size:12px;font-weight:800;width:36px;text-align:right;flex-shrink:0}
-.fblist{list-style:none}
-.fblist li{font-size:13.5px;line-height:1.6;padding:6px 0 6px 22px;position:relative;border-bottom:1px solid var(--bd)}
-.fblist li:last-child{border-bottom:none}
-.fblist li::before{content:'';position:absolute;left:2px;top:13px;width:8px;height:8px;border-radius:50%}
-.fblist.good li::before{background:var(--ok-b)}
-.fblist.work li::before{background:var(--am)}
-.rbtns{display:flex;gap:10px;margin-top:6px}
-.rbtn{flex:1;padding:13px;border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;border:none;transition:opacity .15s}
-.rbtn:hover{opacity:.9}
-.rbtn.pri{color:#fff;background:var(--tl)}
-.rbtn.sec{color:var(--tx);background:var(--card);border:1.5px solid var(--bd2)}
+/* ============================ RESULTADOS ============================ */
+.reswrap{padding:14px 0 6px}
+.restop{text-align:center;margin-bottom:24px}
+.rescirc{
+  width:124px;height:124px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;
+  justify-content:center;flex-direction:column;border:4px solid;background:var(--card);
+  box-shadow:var(--s2);animation:pop .6s var(--e) both;
+}
+.resnum{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1}
+.reslbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:3px;opacity:.72}
+.resstars{font-size:26px;letter-spacing:5px;margin-bottom:8px;animation:popSm .5s var(--e) .2s both}
+.resmsg{font-size:16px;font-weight:800;margin-bottom:7px;animation:fadeUp .45s var(--e) .16s both}
+.ressub{font-size:13px;color:var(--tx2);max-width:380px;margin:0 auto;animation:fadeUp .45s var(--e) .22s both}
+.resbarw{max-width:240px;height:8px;background:var(--c2);border-radius:99px;overflow:hidden;margin:16px auto 5px;border:1px solid var(--bd)}
+.resbarf{height:100%;border-radius:99px;transition:width 1.1s var(--e);animation:grow 1.1s var(--e)}
+.saverow{font-size:12px;color:var(--tx3);text-align:center;margin:8px 0 16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.saverow.saved{color:var(--tl);font-weight:700}
+.sdot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.6s ease-in-out infinite}
+.saverow.saved .sdot,.wsaverow.saved .sdot{animation:none}
+.statsg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.statc{
+  background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px 8px;text-align:center;
+  box-shadow:var(--s1);animation:fadeUp .45s var(--e) both;
+}
+.statsg .statc:nth-child(1){animation-delay:.06s}.statsg .statc:nth-child(2){animation-delay:.12s}
+.statsg .statc:nth-child(3){animation-delay:.18s}
+.statv{font-size:23px;font-weight:900;letter-spacing:-.5px;margin-bottom:2px}
+.statl{font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em}
+.perfect{
+  background:linear-gradient(135deg,var(--ok-bg),#dff5e9);border:1.5px solid var(--ok-b);border-radius:14px;
+  padding:14px 16px;text-align:center;margin-bottom:18px;font-size:13px;font-weight:700;color:var(--ok-t);
+  animation:pop .5s var(--e) .25s both;
+}
+.leavewarn{
+  background:var(--er-bg);border:1.5px solid var(--er-b);border-radius:14px;padding:13px 16px;
+  text-align:center;margin-bottom:16px;font-size:12.5px;font-weight:700;color:var(--er-t);
+}
+/* Lo que fallaste, para repasarlo antes de la siguiente ronda. */
+.revsec{margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr;gap:0 10px;align-items:start}
+.revhd{grid-column:1/-1;font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.revdot{width:7px;height:7px;border-radius:50%;background:var(--co)}
+.revitem{
+  background:var(--card);border:1px solid var(--bd);border-left:4px solid #ef8f70;border-radius:12px;
+  padding:12px 14px;margin-bottom:8px;box-shadow:var(--s1);
+  transition:transform .18s var(--e),box-shadow .18s;animation:fadeUp .45s var(--e) both;
+}
+.revitem:hover{transform:translateX(3px);box-shadow:var(--s2)}
+.revsec .revitem:nth-child(2){animation-delay:.04s}.revsec .revitem:nth-child(3){animation-delay:.08s}
+.revsec .revitem:nth-child(4){animation-delay:.12s}.revsec .revitem:nth-child(5){animation-delay:.16s}
+.revsec .revitem:nth-child(n+6){animation-delay:.2s}
+.revw{font-weight:800;font-size:14px;margin-bottom:2px}
+.revm{font-size:10px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.revwhy{font-size:12px;color:var(--tx2);line-height:1.5}
+.actrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.actbtn{
+  padding:12px 22px;border-radius:12px;border:1.5px solid var(--bd2);background:var(--card);font-size:13px;
+  font-weight:700;cursor:pointer;color:var(--tx);font-family:inherit;transition:all .16s var(--e2);
+}
+.actbtn:hover{background:var(--c2);transform:translateY(-2px);box-shadow:var(--s1)}
+.actbtn.pri{color:#fff;border-color:transparent}
+.actbtn.pri:hover{filter:saturate(1.1);box-shadow:var(--s2)}
 
-/* TOAST */
-#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--tx);color:#fff;font-size:13px;font-weight:600;padding:12px 20px;border-radius:24px;opacity:0;pointer-events:none;transition:.3s;z-index:99;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-#toast.warn{background:var(--er-t)}
+/* ============================ PANEL DEL PROFESOR ============================ */
+.dashtop{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 0 18px;flex-wrap:wrap;gap:14px}
+.dashh{font-size:23px;font-weight:900;letter-spacing:-.5px}
+.dashlive{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx2);margin-top:4px}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--tl);animation:blink 1.8s ease-in-out infinite}
+.dashacts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dashctl{width:auto;padding:9px 12px;font-size:12.5px;border-radius:10px}
+.dlbtn{
+  font-size:12.5px;font-weight:800;padding:10px 17px;border-radius:99px;border:none;background:var(--tl);
+  color:#fff;font-family:inherit;cursor:pointer;box-shadow:0 4px 12px rgba(15,158,114,.28);white-space:nowrap;
+  transition:transform .16s var(--e2),box-shadow .16s;
+}
+.dlbtn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,158,114,.36)}
+.dashex,.refbtn{
+  border-radius:10px;border:1.5px solid var(--bd2);background:var(--card);font-weight:700;cursor:pointer;
+  color:var(--tx2);font-family:inherit;transition:all .16s var(--e2);
+}
+.dashex{padding:9px 16px;font-size:12px}
+.dashex:hover{background:var(--er-bg);color:var(--er-t);border-color:#e9a9a9}
+.refbtn{padding:7px 15px;font-size:11.5px}
+.refbtn:hover{background:var(--tl-l);color:var(--tl);border-color:var(--tl-m);transform:translateY(-1px)}
 
-/* TEACHER ACCESS */
-.tlink{display:block;width:100%;text-align:center;margin-top:16px;background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
-.tlwrap{min-height:88vh;display:flex;align-items:center;justify-content:center}
-.tlcard{background:var(--card);border:1.5px solid var(--bd);border-radius:20px;padding:30px 26px;width:100%;max-width:380px;text-align:center}
-.tlico{width:50px;height:50px;border-radius:15px;background:var(--bl-l);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-.tlico svg{width:22px;height:22px;stroke:var(--bl);stroke-width:2;fill:none;stroke-linecap:round}
-.tlh{font-size:19px;font-weight:800;margin-bottom:5px}
-.tlp{font-size:13px;color:var(--tx2);line-height:1.55;margin-bottom:18px}
-.errmsg{font-size:12px;color:var(--er-t);margin-top:9px;display:none}
-.backl{background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;margin-top:13px;width:100%}
-.dashtop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
-.dashh{font-size:22px;font-weight:900;letter-spacing:-.5px}
-.dashlive{font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:7px;margin-top:3px}
-.ldot{width:8px;height:8px;border-radius:50%;background:var(--tl);animation:pulse 1.8s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(15,158,114,.5)}70%{box-shadow:0 0 0 8px rgba(15,158,114,0)}100%{box-shadow:0 0 0 0 rgba(15,158,114,0)}}
-.dashex{padding:8px 16px;border-radius:10px;border:1.5px solid var(--bd2);background:var(--card);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx2)}
-.dashex:hover{background:var(--c2)}
-.dfilters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px}
-.dfin{width:auto;appearance:auto;padding:9px 12px}
-.refbtn{padding:9px 14px;border-radius:10px;border:1.5px solid var(--bd2);background:var(--card);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--tx2)}
-.refbtn:hover{background:var(--c2)}
-.refbtn.dl{background:var(--tl);color:#fff;border:none}
-.metg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.metc{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:14px 12px 14px 16px;position:relative;overflow:hidden}
-.mets{position:absolute;top:0;left:0;width:4px;height:100%}
-.metv{font-size:23px;font-weight:900;letter-spacing:-.5px}
-.metl{font-size:11px;color:var(--tx2);font-weight:600;margin-top:2px}
-.metsub{font-size:10px;color:var(--tx3)}
-.dashg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.dc{background:var(--card);border:1.5px solid var(--bd);border-radius:14px;padding:16px}
-.dc.full{grid-column:1 / -1}
-.dch{font-size:13px;font-weight:800;margin-bottom:12px}
-.dctop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.brow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.brow:last-child{margin-bottom:0}
-.bl{font-size:12px;width:118px;flex-shrink:0;color:var(--tx2);font-weight:600}
-.bt{flex:1;height:8px;background:var(--c3);border-radius:4px;overflow:hidden}
-.bf{height:100%;border-radius:4px}
-.bv{font-size:12px;font-weight:800;width:30px;text-align:right}
-.emptyd{font-size:13px;color:var(--tx3);text-align:center;padding:24px}
+/* Cada cifra con su comparacion y sus ultimos siete dias: un numero solo no dice
+   si 67 es bueno o malo. */
+.metg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.metc{
+  background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;
+  box-shadow:var(--s1);position:relative;overflow:hidden;
+  transition:transform .18s var(--e),box-shadow .18s;animation:fadeUp .45s var(--e) both;
+}
+.metc:hover{transform:translateY(-3px);box-shadow:var(--s2)}
+.metg .metc:nth-child(1){animation-delay:.04s}.metg .metc:nth-child(2){animation-delay:.09s}
+.metg .metc:nth-child(3){animation-delay:.14s}.metg .metc:nth-child(4){animation-delay:.19s}
+.metc.risk{border-left:4px solid var(--co);background:linear-gradient(100deg,var(--co-l),var(--card) 62%)}
+.metl{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em}
+.metc.risk .metl{color:var(--co-d)}
+.metv{font-size:32px;font-weight:900;letter-spacing:-1.2px;margin:8px 0 5px;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.metc.risk .metv{color:var(--co-d)}
+.metd{font-size:11.5px;font-weight:700;line-height:1.45;min-height:32px}
+.metd.up{color:var(--ok-t)}
+.metd.dn{color:var(--er-t)}
+.metd.flat{color:var(--tx3);font-weight:600}
+.metc.risk .metd{color:var(--co-d)}
+.spark{display:flex;align-items:flex-end;gap:3px;height:34px;margin-top:10px}
+.spark i{flex:1;border-radius:3px 3px 0 0;opacity:.5;transition:opacity .25s var(--e)}
+.metc:hover .spark i{opacity:.9}
+
+/* Filtros: se pulsan, no se despliegan */
+.dchips{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.dchip{
+  font-size:12px;font-weight:700;padding:7px 14px;border-radius:99px;border:1px solid var(--bd);
+  background:var(--card);color:var(--tx2);cursor:pointer;font-family:inherit;
+  transition:all .16s var(--e2);white-space:nowrap;
+}
+.dchip:hover{background:var(--c2);color:var(--tx)}
+.dchip.on{background:var(--tx);border-color:var(--tx);color:#fff}
+.dchip.warn{border-color:#e9a9a9;color:var(--co-d);background:var(--co-l)}
+.dchip.warn.on{background:var(--co);border-color:var(--co);color:#fff}
+.dsep{width:1px;height:20px;background:var(--bd);flex-shrink:0}
+.dhd{font-size:12px;color:var(--tx3);font-weight:600;margin:14px 0 4px}
+
+.dashg{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.dc{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;box-shadow:var(--s1)}
+.dc.full{grid-column:1/-1}
+.dch{font-size:14px;font-weight:800;margin-bottom:16px;letter-spacing:-.2px}
+.dctop{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.brow{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.bl{font-size:12.5px;color:var(--tx2);width:110px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt{flex:1;height:9px;background:var(--c2);border-radius:99px;overflow:hidden}
+.bf{height:100%;border-radius:99px;transition:width .9s var(--e);animation:grow .9s var(--e)}
+.bv{font-size:12px;color:var(--tx2);width:34px;text-align:right;flex-shrink:0;font-weight:800}
 .stbl{width:100%;border-collapse:collapse;font-size:13px}
-.stbl th{text-align:left;font-size:11px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1.5px solid var(--bd)}
-.stbl td{padding:9px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
-.lvdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
-.sct{height:5px;background:var(--c3);border-radius:3px;overflow:hidden;margin-top:3px;width:84px}
-.scf{height:100%;border-radius:3px}
-.perfb{font-size:11px;font-weight:800;padding:3px 9px;border-radius:8px}
-.readbtn{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;border:1.5px solid var(--bd2);background:var(--card);cursor:pointer;font-family:inherit;color:var(--tx2);margin-left:5px}
-.readbtn:hover{background:var(--c2)}
-#emodal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:18px;z-index:120}
-#emodal.show{display:flex}
-.emodal-card{background:var(--card);border-radius:18px;padding:22px;max-width:560px;width:100%;max-height:86vh;overflow-y:auto}
-.emodal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
-.emodal-name{font-size:18px;font-weight:900;letter-spacing:-.3px}
-.emodal-meta{font-size:12px;color:var(--tx2);margin-top:2px}
-.emodal-x{background:none;border:none;font-size:18px;cursor:pointer;color:var(--tx3);font-family:inherit}
-.emodal-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tx3);margin:14px 0 7px}
-.emodal-text{font-size:14px;line-height:1.7;white-space:pre-wrap;background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:14px}
-.emb-bands{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:10px}
-.emb-b{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:9px 4px;text-align:center}
-.emb-b span{display:block;font-size:9px;color:var(--tx2);font-weight:700;text-transform:uppercase;letter-spacing:.02em}
-.emb-b b{font-size:17px}
-.emb-sum{font-size:13px;line-height:1.6;color:var(--tx);background:var(--bl-l);border-radius:10px;padding:11px 13px;margin-bottom:8px}
-@media (max-width:560px){.metg{grid-template-columns:1fr 1fr}.dashg{grid-template-columns:1fr}.emb-bands{grid-template-columns:repeat(3,1fr)}}
+.stbl th{
+  font-size:10px;font-weight:700;color:var(--tx3);text-align:left;padding:9px 10px;
+  border-bottom:1.5px solid var(--bd);text-transform:uppercase;letter-spacing:.05em;
+}
+.stbl td{padding:11px 10px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.stbl tbody tr{transition:background .14s}
+.stbl tbody tr:last-child td{border-bottom:none}
+.stbl tbody tr:hover td{background:var(--c2)}
+/* franja de color al principio de la fila: el estado se ve sin leer el numero */
+.stripe{width:4px;height:28px;border-radius:99px;display:inline-block;vertical-align:middle;margin-right:10px;flex-shrink:0}
+.stcell{display:flex;align-items:center}
+.lvdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle}
+.sct{display:inline-block;width:56px;height:5px;border-radius:99px;background:var(--c2);overflow:hidden;vertical-align:middle;margin-left:7px}
+.scf{height:100%;border-radius:99px}
+.perfb{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;display:inline-block}
+.emptyd{text-align:center;padding:30px;color:var(--tx3);font-size:14px}
+.readbtn{
+  margin-left:6px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid var(--vi);
+  background:var(--vi-l);color:var(--vi);cursor:pointer;font-family:inherit;transition:all .16s var(--e2);
+}
+.readbtn:hover{background:var(--vi);color:#fff}
+
+/* ============================ PANTALLA DE ESCRITURA ============================ */
+/* Cuaderno: la hoja rayada ocupa todo el alto que quede libre. */
+#s-write.active{display:flex;flex-direction:column;min-height:calc(100vh - 104px)}
+#wbody{flex:1;min-height:0;display:flex;flex-direction:column}
+.wtopbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.wpill{font-size:11px;font-weight:800;padding:6px 14px;border-radius:99px;letter-spacing:.03em;white-space:nowrap;color:#fff}
+.wback{
+  margin-left:auto;background:var(--card);border:1.5px solid var(--bd2);border-radius:10px;padding:7px 14px;
+  font-size:12px;font-weight:700;cursor:pointer;color:var(--tx2);font-family:inherit;transition:all .16s var(--e2);
+}
+.wback:hover{background:var(--c2);color:var(--tx)}
+.wstrip{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:2px 4px 16px}
+.wtopic{display:inline-block;font-size:10px;font-weight:800;padding:4px 11px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase}
+.wstrip-t{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.wmore{
+  background:none;border:none;color:var(--vi);font-size:12.5px;font-weight:700;font-family:inherit;
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:4px;transition:opacity .16s;
+}
+.wmore:hover{opacity:.65}
+.wchip{font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;background:var(--c2);color:var(--tx2);white-space:nowrap}
+.wstrip .wchip:nth-of-type(1){margin-left:auto}
+.wtaskpanel{
+  background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px 22px;
+  margin-bottom:14px;box-shadow:var(--s1);animation:fadeUp .3s var(--e) both;
+}
+.wtaskpanel[hidden]{display:none}
+.wtask{font-size:14.5px;line-height:1.7;color:var(--tx);margin-bottom:14px;max-width:74ch}
+.wmeta-row{display:flex;gap:8px;flex-wrap:wrap}
+.wmeta-chip{font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;background:var(--c2);color:var(--tx2);display:flex;align-items:center;gap:5px}
+.wnote{
+  display:block;border-radius:12px;padding:12px 14px;margin-top:14px;font-size:12.5px;font-weight:700;
+  line-height:1.55;background:var(--bl-l);border:1.5px solid #9cc6ec;color:var(--bl-d);
+}
+.wnote.exam{background:var(--am-l);border-color:#e6bd6e;color:var(--am-d)}
+.wnote b{font-weight:800}
+.wshuffle{
+  background:none;border:none;color:var(--vi);font-size:12.5px;font-weight:700;cursor:pointer;
+  font-family:inherit;text-decoration:underline;text-underline-offset:3px;padding:12px 2px 0;transition:opacity .16s;
+}
+.wshuffle:hover{opacity:.65}
+/* La hoja: rayas dibujadas con un degradado que se repite cada linea. Van con
+   background-attachment:local para que se muevan junto al texto al desplazarse. */
+.wpaper{
+  --lh:38px;
+  flex:1;display:flex;flex-direction:column;min-height:320px;overflow:hidden;
+  background:var(--card);border:1px solid var(--bd);border-radius:20px;box-shadow:var(--s2);
+  animation:fadeUp .45s var(--e) both;
+}
+.wta{
+  flex:1;width:100%;border:none;outline:none;resize:none;font-family:inherit;
+  font-size:16.5px;line-height:var(--lh);color:var(--tx);padding:26px 44px;
+  background-color:transparent;background-attachment:local;
+  background-image:repeating-linear-gradient(180deg,transparent 0 calc(var(--lh) - 1px),#eeece4 calc(var(--lh) - 1px) var(--lh));
+  background-position:0 26px;
+}
+.wta::placeholder{color:var(--tx3)}
+.wpfoot{
+  border-top:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;
+  justify-content:space-between;gap:14px;flex-wrap:wrap;background:#fcfbf8;
+}
+.wprog{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wring{
+  --p:0%;
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(var(--vi) 0 var(--p),var(--c3) var(--p) 100%);
+  transition:background .4s var(--e);
+}
+.wring.done{background:conic-gradient(var(--tl) 0 100%,var(--tl) 0)}
+.wring span{
+  width:30px;height:30px;border-radius:50%;background:#fcfbf8;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:900;color:var(--vi-d);
+}
+.wring.done span{color:var(--tl-d)}
+.wwc{font-size:12.5px;color:var(--tx3);font-weight:600}
+.wwc b{color:var(--tx2)}
+.wwc.ok b{color:var(--tl)}
+.wbtns{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.wsubmit{
+  padding:12px 26px;border-radius:12px;border:none;background:linear-gradient(135deg,#6b53de,#4d38b4);
+  color:#fff;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;
+  box-shadow:0 6px 18px rgba(91,69,200,.32);transition:transform .16s var(--e2),box-shadow .16s,opacity .16s;
+}
+.wsubmit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 26px rgba(91,69,200,.42)}
+.wsubmit:active:not(:disabled){transform:translateY(0) scale(.99)}
+.wsubmit:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+
+/* ============================ CORRECCION Y DEVOLUCION ============================ */
+.wgrading{text-align:center;padding:44px 20px;animation:fadeIn .3s both}
+.wspin{
+  width:42px;height:42px;border:3.5px solid var(--c3);border-top-color:var(--vi);border-radius:50%;
+  margin:0 auto 18px;animation:wsp .75s linear infinite;
+}
+.wgrading-t{font-size:15px;font-weight:800;margin-bottom:5px}
+.wgrading-s{font-size:13px;color:var(--tx2)}
+.wfb-top{text-align:center;margin-bottom:20px}
+.wfb-circ{
+  width:116px;height:116px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;
+  justify-content:center;flex-direction:column;border:4px solid;background:var(--card);
+  box-shadow:var(--s2);animation:pop .6s var(--e) both;
+}
+.wfb-num{font-size:36px;font-weight:900;letter-spacing:-2px;line-height:1}
+.wfb-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-top:3px;opacity:.72}
+.wfb-msg{font-size:16px;font-weight:800;margin-bottom:5px;animation:fadeUp .45s var(--e) .14s both}
+.wfb-sub{font-size:13px;color:var(--tx2);animation:fadeUp .45s var(--e) .2s both}
+.wband{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+.wbandc{
+  background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:13px 14px;
+  box-shadow:var(--s1);animation:fadeUp .45s var(--e) both;
+}
+.wband .wbandc:nth-child(1){animation-delay:.04s}.wband .wbandc:nth-child(2){animation-delay:.09s}
+.wband .wbandc:nth-child(3){animation-delay:.14s}.wband .wbandc:nth-child(4){animation-delay:.19s}
+.wband .wbandc:nth-child(n+5){animation-delay:.24s}
+.wbandc .bn{font-size:11px;font-weight:800;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.wbandc .bn .bsc{font-size:13px;font-weight:900}
+.wbar{height:7px;background:var(--c2);border-radius:99px;overflow:hidden;border:1px solid var(--bd)}
+.wbar div{height:100%;border-radius:99px;transition:width .9s var(--e);animation:grow .9s var(--e)}
+.wfb-block{
+  background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px 17px;
+  margin-bottom:12px;box-shadow:var(--s1);animation:fadeUp .45s var(--e) both;
+}
+.wfb-h{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.wfb-h .dot{width:8px;height:8px;border-radius:50%}
+.wfb-li{font-size:13px;line-height:1.62;color:var(--tx);padding:8px 0 8px 23px;position:relative;border-bottom:1px solid var(--bd)}
+.wfb-li:last-child{border-bottom:none}
+.wfb-li:before{content:"";position:absolute;left:4px;top:14px;width:8px;height:8px;border-radius:50%}
+.wfb-li.good:before{background:var(--ok-b)}
+.wfb-li.work:before{background:var(--am)}
+.wfb-summary{
+  background:linear-gradient(135deg,var(--vi-l),#e6e2fc);border:1px solid #c9c0f3;border-radius:var(--r);
+  padding:16px 17px;margin-bottom:16px;font-size:13px;line-height:1.68;color:var(--in-d);
+}
+.wfb-summary b{font-weight:800}
+.wsaverow{font-size:12px;color:var(--tx3);text-align:center;margin:4px 0 16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.wsaverow.saved{color:var(--vi);font-weight:700}
+
+/* ============================ AVISOS Y MODAL ============================ */
+#toast{
+  position:fixed;bottom:28px;left:50%;background:rgba(23,23,19,.94);color:#fff;font-size:13px;font-weight:700;
+  padding:12px 22px;border-radius:99px;opacity:0;z-index:999;pointer-events:none;max-width:88vw;
+  text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.28);
+  transform:translate(-50%,14px);transition:opacity .3s var(--e),transform .3s var(--e);
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.warn{background:rgba(154,38,38,.96)}
+#emodal{
+  position:fixed;inset:0;background:rgba(20,20,15,.5);display:none;align-items:flex-start;justify-content:center;
+  padding:30px 16px;z-index:1000;overflow-y:auto;
+}
+#emodal.show{display:flex;animation:fadeIn .22s both}
+.emodal-card{
+  background:var(--card);border-radius:20px;padding:24px;max-width:640px;width:100%;
+  box-shadow:0 24px 70px rgba(0,0,0,.32);animation:pop .32s var(--e) both;
+}
+.emodal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.emodal-name{font-size:19px;font-weight:900;letter-spacing:-.4px}
+.emodal-meta{font-size:12px;color:var(--tx2);margin-top:3px}
+.emodal-x{
+  background:var(--c2);border:none;width:34px;height:34px;border-radius:10px;font-size:15px;cursor:pointer;
+  color:var(--tx2);flex-shrink:0;transition:all .16s var(--e2);
+}
+.emodal-x:hover{background:var(--er-bg);color:var(--er-t);transform:rotate(90deg)}
+.emb-bands{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.emb-b{background:var(--bg);border:1px solid var(--bd);border-radius:11px;padding:10px 6px;text-align:center}
+.emb-b span{display:block;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
+.emb-b b{font-size:19px;font-weight:900}
+.emb-sum{background:var(--vi-l);border:1px solid #c9c0f3;border-radius:12px;padding:12px 14px;font-size:12px;line-height:1.6;color:var(--in-d);margin-bottom:14px}
+.emodal-lbl{font-size:11px;font-weight:800;color:var(--tx2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.emodal-text{
+  background:var(--bg);border:1px solid var(--bd);border-radius:13px;padding:16px;font-size:14px;
+  line-height:1.78;color:var(--tx);white-space:pre-wrap;max-height:340px;overflow-y:auto;
+}
+
+/* ============================ RESPONSIVE ============================ */
+@media(max-width:1100px){
+  .wband{grid-template-columns:repeat(3,1fr)}
+  .emb-bands{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:1000px){
+  #s-quiz.active{min-height:0}
+  .opts.c4{grid-template-columns:1fr 1fr}
+  .opts.c4 .opt{flex-direction:row;min-height:0;gap:13px}
+  .sc{font-size:18px}
+  .qp{font-size:20px}
+  /* en dos filas la linea del recorrido deja de tener sentido */
+  .rgrid{grid-template-columns:repeat(2,1fr);gap:16px}
+  .rline{display:none}
+  .rd{min-height:0}
+  .lvgrid{grid-template-columns:1fr 1fr}
+  #s-write.active{min-height:0}
+  .wpaper{min-height:420px}
+  .passage{max-height:none}
+}
+@media(max-width:900px){
+  .nsplit,.tsplit{grid-template-columns:1fr}
+  .nleft{padding:42px 30px;gap:22px}
+  .nart svg{max-height:230px}
+  .nright{padding:38px 30px 64px}
+  .nrain{left:30px;right:30px}
+  .tleft{padding:44px 30px;gap:26px}
+  .tright{padding:40px 30px 64px}
+  .train{left:30px;right:30px}
+  .metg{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .dashacts{width:100%}
+  .dashctl{flex:1}
+  .dashg{grid-template-columns:1fr}
+  .dc.full{grid-column:auto}
+  .lvgrid{grid-template-columns:1fr}
+  .revsec{grid-template-columns:1fr}
+}
+@media(max-width:460px){
+  #app{padding:16px 13px 72px}
+  .ntitle{font-size:32px}
+  .opts,.opts.c4,.opts.c2{grid-template-columns:1fr}
+  .lvgrid,.wband,.rgrid{grid-template-columns:1fr}
+  .wbtns{width:100%}
+  .wbtns button{flex:1}
+  .wta{padding:22px 20px;font-size:16px}
+  .wstrip .wchip:nth-of-type(1){margin-left:0}
+  .wpfoot{padding:14px 16px}
+  .qcard{padding:22px 18px 24px}
+  .sc{font-size:16.5px}
+  .qp{font-size:18px}
+  .htop{gap:10px}
+  .rdot{width:56px;height:56px;font-size:20px;margin-bottom:12px}
+  .metg,.emb-bands{grid-template-columns:1fr 1fr}
+  .actrow{flex-direction:column}
+  .actbtn{width:100%;text-align:center}
+  .stbl{font-size:12px}
+  .stbl th,.stbl td{padding:8px 6px}
+  .passage{padding:18px}
+}
+/* Respetar a quien pide menos movimiento (mareos, preferencia del sistema) */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- NAME -->
-  <section class="screen active" id="s-name">
-    <div class="nwrap">
-      <div class="nlogo"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-      <span class="badge">Practice mode</span>
-      <h1 class="ntitle">Vocabulary <span>Quest</span></h1>
-      <p class="nsub">Your training ground for the real Cambridge Stage 8 &amp; 9 quiz.</p>
-      <div class="nseq" aria-hidden="true">
-        <span class="sd" style="background:#0f9e72"></span><span class="sl"></span>
-        <span class="sd" style="background:#1a6fc4"></span><span class="sl"></span>
-        <span class="sd" style="background:#c47a10"></span><span class="sl"></span>
-        <span class="sd" style="background:#c44a28"></span><span class="sl"></span>
-        <span class="sd" style="background:#7c3aed"></span><span class="sl"></span>
-        <span class="sd" style="background:#5b45c8"></span><span class="sl"></span>
-        <span class="sd" style="background:#0d8a8a"></span>
+<!-- ============================ PORTADA ============================ -->
+<div class="screen active" id="s-name">
+  <div class="nsplit">
+    <div class="nleft">
+      <div class="nblob nb1"></div><div class="nblob nb2"></div>
+      <div class="nlin">
+        <div class="nbrand">
+          <div class="nlogo"><svg viewBox="0 0 28 28"><path d="M4 6h20M4 12h14M4 18h17M4 24h10"/></svg></div>
+          <div><div class="nbname">Vocabulary Quest</div><div class="nbmeta">Grades 6 &amp; 7 &middot; English</div></div>
+        </div>
+        <span class="nbadge-pill">Practice mode</span>
+        <h1 class="ntitle">Words you will<br>actually <span>use</span>.</h1>
+        <p class="nsub">Real-life English for grades 6 and 7. Phrasal verbs, conditionals, adjectives and reported speech &mdash; inside real situations. Every round asks different questions, so you can practise as often as you like.</p>
       </div>
-      <div class="ncard">
-        <label class="flbl" for="nm">Your name</label>
-        <input class="finp" id="nm" type="text" placeholder="e.g. Isabella" autocomplete="off" maxlength="40">
-        <label class="flbl" for="cs" style="margin-top:14px">Your course</label>
+      <div class="nart">
+        <svg viewBox="0 0 460 300" role="img" aria-label="A stack of books, an open notebook and a pencil, with two English word cards floating above">
+          <!-- puntos sueltos -->
+          <circle class="ndot" cx="34" cy="150" r="7" fill="#f7b93f"></circle>
+          <circle class="ndot" cx="424" cy="212" r="8" fill="#17a08a" style="animation-delay:-1.4s"></circle>
+          <circle class="ndot" cx="404" cy="34" r="5" fill="#f4694a" style="animation-delay:-2.2s"></circle>
+          <!-- tarjetas de palabras -->
+          <g class="ncard-w" transform="translate(62,58) rotate(-4)">
+            <rect x="0" y="0" width="122" height="46" rx="14" fill="#fff" stroke="#e5e2da" stroke-width="1.5"></rect>
+            <rect x="0" y="0" width="122" height="46" rx="14" fill="none" stroke="rgba(23,23,19,.05)" stroke-width="3" transform="translate(0,3)"></rect>
+            <text x="61" y="29" text-anchor="middle" font-size="17" font-weight="800" fill="#171713" font-family="system-ui,sans-serif">call off</text>
+          </g>
+          <g class="ncard-w" transform="translate(236,30) rotate(3)">
+            <rect x="0" y="0" width="146" height="46" rx="14" fill="#fff" stroke="#e5e2da" stroke-width="1.5"></rect>
+            <text x="73" y="29" text-anchor="middle" font-size="17" font-weight="800" fill="#f4694a" font-family="system-ui,sans-serif">anticipate</text>
+          </g>
+          <!-- pila de libros -->
+          <g transform="translate(30,168)">
+            <rect x="34" y="0" width="150" height="20" rx="10" fill="#7c3aed"></rect>
+            <rect x="20" y="26" width="164" height="20" rx="10" fill="#17a08a"></rect>
+            <rect x="36" y="52" width="146" height="20" rx="10" fill="#f4694a"></rect>
+            <rect x="46" y="8" width="14" height="4" rx="2" fill="rgba(255,255,255,.55)"></rect>
+            <rect x="32" y="34" width="14" height="4" rx="2" fill="rgba(255,255,255,.55)"></rect>
+            <rect x="48" y="60" width="14" height="4" rx="2" fill="rgba(255,255,255,.55)"></rect>
+          </g>
+          <!-- cuaderno abierto -->
+          <g transform="translate(224,152)">
+            <path d="M4 12 C 30 2, 62 2, 84 12 L84 92 C 62 82, 30 82, 4 92 Z" fill="#fff" stroke="#e0ddd4" stroke-width="1.6"></path>
+            <path d="M84 12 C 106 2, 138 2, 164 12 L164 92 C 138 82, 106 82, 84 92 Z" fill="#fff" stroke="#e0ddd4" stroke-width="1.6"></path>
+            <path d="M84 12 V92" stroke="#d7d4ca" stroke-width="1.6"></path>
+            <g stroke="#e6e3da" stroke-width="2.4" stroke-linecap="round">
+              <path d="M18 30 H70"></path><path d="M18 46 H70"></path><path d="M18 62 H62"></path>
+              <path d="M98 30 H150"></path><path d="M98 46 H150"></path><path d="M98 62 H142"></path>
+            </g>
+          </g>
+          <!-- lapiz -->
+          <g class="npencil" transform="translate(330,120) rotate(38)">
+            <rect x="0" y="0" width="24" height="118" rx="6" fill="#f7b93f"></rect>
+            <rect x="0" y="0" width="9" height="118" rx="4" fill="#ffd47a"></rect>
+            <rect x="0" y="0" width="24" height="16" rx="5" fill="#d9dde3"></rect>
+            <rect x="2" y="-14" width="20" height="16" rx="6" fill="#f8a2a2"></rect>
+            <path d="M0 118 L12 140 L24 118 Z" fill="#f2e2c2"></path>
+            <path d="M6 129 L12 140 L18 129 Z" fill="#3f3c36"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="nstats">
+        <div><div class="nsv">104</div><div class="nsl">Questions</div></div>
+        <div><div class="nsv">20</div><div class="nsl">Writing topics</div></div>
+        <div><div class="nsv">7</div><div class="nsl">Activities</div></div>
+      </div>
+    </div>
+    <div class="nright">
+      <div class="nrin">
+        <div class="nrh">Let's begin</div>
+        <div class="nrs">Write your name exactly as it appears on the class list.</div>
+        <div class="flbl">Your full name</div>
+        <input class="finp" id="nm" type="text" placeholder="e.g. Valentina Rodr&iacute;guez" autocomplete="off" maxlength="40">
+        <div class="flbl" style="margin-top:15px">Your course</div>
         <select class="finp" id="cs" style="appearance:auto">
-          <option value="">Select your course…</option>
+          <option value="">Select your course...</option>
           <option value="6D">6D</option>
           <option value="6E">6E</option>
           <option value="6F">6F</option>
           <option value="7C">7C</option>
           <option value="7D">7D</option>
         </select>
-        <button class="bigbtn" id="startBtn">Start practising</button>
-        <p class="nhint">Your name, course and results are saved automatically so your teacher can follow your practice progress.</p>
-        <button class="tlink" id="tlink">Teacher access</button>
+        <button class="bigbtn" id="startBtn">Start playing</button>
+        <p class="nhint">Your name, course and score are saved automatically for your teacher.</p>
+        <div class="nfoot"><button class="tlink" id="tlink">Teacher access</button></div>
+      </div>
+      <div class="nrain"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ LOGIN DEL PROFESOR ============================ -->
+<div class="screen" id="s-tl">
+  <div class="tsplit">
+    <div class="tleft">
+      <div class="tshape ts1"></div><div class="tshape ts2"></div><div class="tshape ts3"></div>
+      <div class="tlin">
+        <div class="tico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h1 class="tth">Practice<br><span>Dashboard</span></h1>
+        <p class="ttp">Live practice results from every course, updated while your students work.</p>
+        <div class="tbullets">
+          <div class="tbu"><span class="tbk">1</span>Scores by activity, course and date</div>
+          <div class="tbu"><span class="tbk">2</span>Read every article and essay in full</div>
+          <div class="tbu"><span class="tbk">3</span>Download the whole class as a spreadsheet</div>
+        </div>
+      </div>
+      <div class="tstats">
+        <div><div class="tsv">5</div><div class="tsl">Courses</div></div>
+        <div><div class="tsv">30s</div><div class="tsl">Refresh</div></div>
+        <div><div class="tsv">7</div><div class="tsl">Activities</div></div>
       </div>
     </div>
-  </section>
-
-  <!-- HOME -->
-  <section class="screen" id="s-home">
-    <div class="rainbow"></div>
-    <div class="htop">
-      <div class="av" id="av">S</div>
-      <div><div class="hg">Practice session</div><div class="hn" id="hn">Student</div></div>
-    </div>
-    <p class="hdesc">Choose a module to practise. Each one mirrors a part of the real Cambridge Stage 8 &amp; 9 quiz — only the questions change every time you play.</p>
-    <div class="sect">Vocabulary &amp; grammar · climb the levels</div>
-    <div class="path" id="lvgrid"></div>
-    <div class="sect">Reading &amp; writing</div>
-    <div class="path" id="rwgrid"></div>
-    <p class="hft">Cambridge Lower Secondary · Stages 8 &amp; 9<br>Keep practising — every round has fresh questions.</p>
-  </section>
-
-  <!-- READING LIST -->
-  <section class="screen" id="s-readlist">
-    <div class="gtop">
-      <span class="gpill" style="background:var(--vi)">Reading comprehension</span>
-    </div>
-    <p class="hdesc" style="margin-top:0">Pick a text. Read it carefully, then answer the questions. You can scroll the text while you answer, but you cannot go back to change an answer.</p>
-    <div class="lvgrid" id="readgrid"></div>
-    <button class="rbtn sec" style="margin-top:14px;width:100%" id="readBack">Back to menu</button>
-  </section>
-
-  <!-- QUIZ -->
-  <section class="screen lock" id="s-quiz">
-    <div class="gtop">
-      <span class="gpill" id="qpill">Beginner</span>
-      <div class="gpw">
-        <div class="gtrk"><div class="gfill" id="qfill" style="width:0%"></div></div>
-        <div class="gmeta"><span id="qprog">Question 1</span><span id="qstreak">Streak 0</span></div>
+    <div class="tright">
+      <div class="trin">
+        <div class="trh">Teacher access</div>
+        <div class="trs">Enter your password to open the practice dashboard.</div>
+        <div class="flbl">Password</div>
+        <input class="finp" id="tpass" type="password" placeholder="Enter password">
+        <button class="bigbtn b" id="tlbtn">View dashboard</button>
+        <p class="errmsg" id="perr">Incorrect password. Please try again.</p>
+        <div class="tfoot"><button class="backl" id="tbk">Back to student login</button></div>
       </div>
-      <div class="gscore" id="qscore">0</div>
+      <div class="train"></div>
     </div>
-    <div id="qpassageWrap"></div>
-    <div class="qcard" id="qcard"></div>
-    <button class="nextbtn" id="nextBtn">Next question</button>
-  </section>
+  </div>
+</div>
 
-  <!-- WRITING -->
-  <section class="screen lock" id="s-write">
-    <div class="wtop">
-      <span class="wtag" id="wtag">Stage 8 — Article</span>
-      <h2 class="wtitle" id="wtitle"></h2>
-      <div class="wprompt" id="wprompt"></div>
-      <div class="waud" id="waud"></div>
+<!-- ============================ PANEL DEL PROFESOR ============================ -->
+<div class="screen" id="s-dash">
+  <div class="rainbow"></div>
+  <div class="dashtop">
+    <div>
+      <div class="dashh">Practice Dashboard</div>
+      <div class="dashlive"><div class="ldot"></div>Live practice results &mdash; refreshes every 30 seconds</div>
     </div>
-    <textarea class="wta" id="wta" placeholder="Start writing here. Plan your paragraphs, use connectives, and check your work before you submit." spellcheck="false"></textarea>
-    <div class="wcount"><span>Words: <b id="wnum">0</b> <span id="wgoal"></span></span><span id="wready"></span></div>
-    <button class="wsubmit" id="wsubmit" disabled>Get feedback</button>
-  </section>
-
-  <!-- WRITE RESULT -->
-  <section class="screen" id="s-wresult"></section>
-
-  <!-- QUIZ RESULT -->
-  <section class="screen" id="s-result"></section>
-
-  <!-- TEACHER LOGIN -->
-  <section class="screen" id="s-tl">
-    <div class="tlwrap"><div class="tlcard">
-      <div class="tlico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      <div class="tlh">Teacher dashboard</div>
-      <p class="tlp">Enter your access password to see every student's practice results and progress.</p>
-      <div class="flbl" style="text-align:left">Password</div>
-      <input class="finp" id="tpass" type="password" placeholder="Enter password">
-      <button class="bigbtn" id="tlbtn" style="background:var(--bl)">View dashboard</button>
-      <p class="errmsg" id="perr">Incorrect password. Please try again.</p>
-      <button class="backl" id="tbk">Back to student login</button>
-    </div></div>
-  </section>
-
-  <!-- TEACHER DASHBOARD -->
-  <section class="screen" id="s-dash">
-    <div class="rainbow"></div>
-    <div class="dashtop">
-      <div><div class="dashh">Teacher dashboard</div><div class="dashlive"><span class="ldot"></span>Live practice results — refreshes every 30 seconds</div></div>
+    <div class="dashacts">
+      <input class="finp dashctl" id="fdate" type="date">
+      <select class="finp dashctl" id="factiv" style="appearance:auto">
+        <option value="">All activities</option>
+        <option value="beginner">Beginner</option>
+        <option value="elementary">Elementary</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="expert">Expert</option>
+        <option value="reading">Reading</option>
+        <option value="stage8">Stage 8 &mdash; Article</option>
+        <option value="stage9">Stage 9 &mdash; Essay</option>
+      </select>
+      <button class="dlbtn" id="dlbtn">&#11015; Download Excel</button>
       <button class="dashex" id="dex">Exit</button>
     </div>
-    <div class="dfilters">
-      <div><div class="flbl">Date</div><input class="finp dfin" id="fdate" type="date"></div>
-      <div><div class="flbl">Course</div><select class="finp dfin" id="fcourse"><option value="">All courses</option><option value="6D">6D</option><option value="6E">6E</option><option value="6F">6F</option><option value="7C">7C</option><option value="7D">7D</option></select></div>
-      <div><div class="flbl">Activity</div><select class="finp dfin" id="factiv"><option value="">All activities</option><option value="beginner">Beginner</option><option value="elementary">Elementary</option><option value="intermediate">Intermediate</option><option value="expert">Expert</option><option value="reading">Reading</option><option value="stage8">Stage 8 — Article</option><option value="stage9">Stage 9 — Essay</option></select></div>
-      <button class="refbtn dl" id="dlbtn">⬇ Download backup (Excel)</button>
+  </div>
+  <select id="fcourse" hidden>
+    <option value="">All courses</option>
+    <option value="6D">6D</option><option value="6E">6E</option><option value="6F">6F</option>
+    <option value="7C">7C</option><option value="7D">7D</option>
+  </select>
+  <div class="metg">
+    <div class="metc">
+      <div class="metl">Attempts</div>
+      <div class="metv" id="mtot">--</div>
+      <div class="metd" id="dtot"></div>
+      <div class="spark" id="stot"></div>
     </div>
-    <div class="metg">
-      <div class="metc"><div class="mets" style="background:#0f9e72"></div><div class="metv" id="mtot">--</div><div class="metl">Attempts</div></div>
-      <div class="metc"><div class="mets" style="background:#1a6fc4"></div><div class="metv" id="mavg">--</div><div class="metl">Average score</div><div class="metsub">out of 100</div></div>
-      <div class="metc"><div class="mets" style="background:#c47a10"></div><div class="metv" id="mpass">--</div><div class="metl">Pass rate</div><div class="metsub">scored 60+</div></div>
-      <div class="metc"><div class="mets" style="background:#c44a28"></div><div class="metv" id="mtop">--</div><div class="metl">Most practised</div></div>
+    <div class="metc">
+      <div class="metl">Average score</div>
+      <div class="metv" id="mavg">--</div>
+      <div class="metd" id="davg"></div>
+      <div class="spark" id="savg"></div>
     </div>
-    <div class="dashg">
-      <div class="dc"><div class="dch">Average score by activity</div><div id="dbylv"></div></div>
-      <div class="dc"><div class="dch">Score distribution</div><div id="ddist"></div></div>
-      <div class="dc full"><div class="dctop"><div class="dch" id="dhd" style="margin:0">Results today</div><button class="refbtn" id="rfbtn">Refresh</button></div><div id="dtbl"></div></div>
+    <div class="metc">
+      <div class="metl">Pass rate</div>
+      <div class="metv" id="mpass">--</div>
+      <div class="metd" id="dpass"></div>
+      <div class="spark" id="spass"></div>
     </div>
-  </section>
+    <div class="metc risk">
+      <div class="metl">Needs attention</div>
+      <div class="metv" id="mrisk">--</div>
+      <div class="metd" id="drisk"></div>
+      <div class="spark" id="srisk"></div>
+    </div>
+  </div>
+  <div class="dc full">
+    <div class="dctop">
+      <div class="dchips" id="dchips">
+        <button class="dchip on" data-view="all">All results</button>
+        <button class="dchip warn" data-view="risk">&#9679; Needs attention</button>
+        <button class="dchip" data-view="writing">Writing only</button>
+        <button class="dchip" data-view="reading">Reading only</button>
+        <span class="dsep"></span>
+        <button class="dchip on" data-course="">All courses</button>
+        <button class="dchip" data-course="6D">6D</button>
+        <button class="dchip" data-course="6E">6E</button>
+        <button class="dchip" data-course="6F">6F</button>
+        <button class="dchip" data-course="7C">7C</button>
+        <button class="dchip" data-course="7D">7D</button>
+      </div>
+      <button class="refbtn" id="rfbtn">Refresh</button>
+    </div>
+    <div class="dhd" id="dhd"></div>
+    <div id="dtbl"></div>
+  </div>
+  <div class="dashg">
+    <div class="dc"><div class="dch">Average score by activity</div><div id="dbylv"></div></div>
+    <div class="dc"><div class="dch">Score distribution</div><div id="ddist"></div></div>
+  </div>
+</div>
+
+<!-- ============================ HOME ============================ -->
+<div class="screen" id="s-home">
+  <div class="rainbow"></div>
+  <div class="htop">
+    <div class="hi">
+      <div class="awrap"><div class="av" id="av"></div></div>
+      <div><div class="hg">Practice session</div><div class="hn" id="hn"></div></div>
+      <span class="crs" id="hcourse"></span>
+    </div>
+    <button class="exitbtn" id="exitbtn" title="Leave the practice app">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l-5-5 5-5"/><path d="M5 12h11"/><path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4"/></svg>
+      Exit
+    </button>
+  </div>
+  <p class="hdesc">Every module mirrors a part of the real Cambridge Stage 8 &amp; 9 quiz &mdash; only the questions change each time you play, so you can practise as many times as you want.</p>
+  <div class="wsec-hd"><div class="wsec-line"></div><span>Your route &middot; 20 questions per level</span><div class="wsec-line"></div></div>
+  <div class="route">
+    <div class="rline"></div>
+    <div class="rgrid" id="lvgrid"></div>
+  </div>
+  <div class="wsec-hd"><div class="wsec-line"></div><span>Reading &amp; writing</span><div class="wsec-line"></div></div>
+  <div class="lvgrid" id="rwgrid"></div>
+  <p class="hft">Cambridge Lower Secondary &middot; Stages 8 &amp; 9<br>No download required &middot; Works on any device &middot; Free</p>
+</div>
+
+<!-- ============================ LISTA DE LECTURAS ============================ -->
+<div class="screen" id="s-readlist">
+  <div class="rainbow"></div>
+  <div class="wtopbar">
+    <span class="wpill" style="background:var(--vi)">Reading comprehension</span>
+    <button class="wback" id="readBack">&#8592; Menu</button>
+  </div>
+  <p class="hdesc" style="margin-bottom:18px">Pick a text. Read it carefully, then answer the questions. You can scroll the text while you answer, but you cannot change an answer once you have chosen it.</p>
+  <div class="lvgrid g2" id="readgrid"></div>
+</div>
+
+<!-- ============================ QUIZ ============================ -->
+<div class="screen lock" id="s-quiz">
+  <div class="gtop">
+    <span class="gpill" id="qpill"></span>
+    <div class="gpw">
+      <div class="gtrk"><div class="gfill" id="qfill"></div></div>
+      <div class="gmeta"><span id="qprog"></span><span id="qstreak"></span></div>
+    </div>
+    <div class="gscore" id="qscore">0</div>
+  </div>
+  <div id="qpassageWrap"></div>
+  <div id="qbody"></div>
+</div>
+
+<!-- ============================ ESCRITURA ============================ -->
+<div class="screen lock" id="s-write">
+  <div class="rainbow"></div>
+  <div class="wtopbar">
+    <span class="wpill" id="wtag"></span>
+    <button class="wback" id="wbackbtn">&#8592; Menu</button>
+  </div>
+  <div id="wbody"></div>
+</div>
+
+<!-- ============================ RESULTADOS ============================ -->
+<div class="screen" id="s-result"><div class="reswrap" id="rbody"></div></div>
+<div class="screen" id="s-wresult"><div class="reswrap" id="wrbody"></div></div>
 
 </div>
 <div id="toast"></div>
@@ -660,6 +1388,7 @@ window.addEventListener('beforeunload',function(e){
   if(locked){e.preventDefault();e.returnValue='';return '';}
 });
 
+
 /* ============ NAME / HOME ============ */
 function initName(){
   g('startBtn').addEventListener('click',doStart);
@@ -672,224 +1401,588 @@ function doStart(){
   if(!n){toast("Please type your name to start.");g('nm').focus();return;}
   if(!c){toast("Please select your course.");return;}
   sName=n;sCourse=c;
-  var initial=n.charAt(0).toUpperCase();
-  g('av').textContent=initial;
-  g('hn').textContent=n+(sCourse?(" · "+sCourse):"");
+  g('av').textContent=n.charAt(0).toUpperCase();
+  g('hn').textContent=n;
+  g('hcourse').textContent=sCourse?('Course '+sCourse):'';
   buildHome();
   showScr('s-home');
 }
-function moduleCard(key,name,desc,colKey,tagText){
-  var c=cv(COL[colKey]),cd=cv(COLD[colKey]),cl=cv(COLL[colKey]);
-  var b=document.createElement('button');
-  b.className='lvc';
-  b.innerHTML='<div class="lvst" style="background:'+c+'"></div>'+
-    '<div class="lvn">'+name+'</div>'+
-    '<div class="lvd">'+desc+'</div>'+
-    '<div class="lvb" style="background:'+cl+';color:'+cd+'">'+tagText+'</div>'+
-    '<div class="lvshape" style="background:'+c+'"></div>';
-  b.addEventListener('click',function(){openModule(key);});
-  return b;
-}
-function pathStep(container,key,glyph,name,desc,colKey,tag){
-  var c=cv(COL[colKey]),cd=cv(COLD[colKey]),cl=cv(COLL[colKey]);
-  var step=document.createElement('div');step.className='pstep';
-  step.innerHTML='<div class="prail"><span class="pline"></span><span class="pnode" style="background:'+c+'">'+glyph+'</span></div>'+
-    '<button class="pcard"><span class="pctx"><span class="pcn">'+name+'</span><span class="pcd">'+desc+'</span></span><span class="pct" style="background:'+cl+';color:'+cd+'">'+tag+'</span><span class="pchev">&#8250;</span></button>';
-  step.querySelector('.pcard').addEventListener('click',function(){openModule(key);});
-  container.appendChild(step);
-}
+/* Los cuatro niveles se dibujan como un recorrido numerado: van de facil a
+   dificil y asi se ve el orden de un vistazo. */
 function buildHome(){
-  var grid=g('lvgrid');grid.innerHTML='';
-  var lv=[['beginner','1','Easy'],['elementary','2','Medium'],['intermediate','3','Hard'],['expert','4','Advanced']];
-  lv.forEach(function(x){var L=LEVELS[x[0]];pathStep(grid,'lv:'+x[0],x[1],L.name,L.desc,L.color,x[2]);});
-  var rw=g('rwgrid');rw.innerHTML='';
-  pathStep(rw,'reading','R','Reading','Long Stage 8 & 9 texts with comprehension questions.','vi','New');
-  pathStep(rw,'write:stage8','8','Stage 8 — Article','Write an article on a random topic. Instant feedback.','in','Grade 6');
-  pathStep(rw,'write:stage9','9','Stage 9 — Essay','Write an essay on a random topic. Instant feedback.','cy','Grade 7');
+  var order=['beginner','elementary','intermediate','expert'];
+  var h='',n=0;
+  order.forEach(function(k){
+    var L=LEVELS[k];n++;
+    var c=cv(COL[L.color]),cd=cv(COLD[L.color]),cl=cv(COLL[L.color]);
+    h+='<button class="rnode" data-lv="'+k+'">'+
+         '<div class="rdot" style="background:'+c+'">'+n+'</div>'+
+         '<div class="rcard">'+
+           '<div class="rn" style="color:'+c+'">'+L.name+'</div>'+
+           '<div class="rd">'+L.desc+'</div>'+
+           '<span class="rq" style="background:'+cl+';color:'+cd+'">'+QUESTIONS[k].length+' questions</span>'+
+         '</div>'+
+       '</button>';
+  });
+  g('lvgrid').innerHTML=h;
+  g('lvgrid').querySelectorAll('.rnode').forEach(function(b){
+    b.addEventListener('click',function(){startMCQ(this.getAttribute('data-lv'));});
+  });
+
+  /* Lectura y escritura: tarjetas con una muestra de lo que hay dentro, para
+     que se vea de que van antes de entrar. */
+  function card(key,grade,name,desc,colKey,chips,extra){
+    var c=cv(COL[colKey]);
+    return '<button class="lvc" data-mod="'+key+'">'+
+      '<div class="lvst" style="background:'+c+'"></div>'+
+      '<div class="lvgr">'+grade+'</div>'+
+      '<div class="lvn" style="color:'+c+'">'+name+'</div>'+
+      '<div class="lvd">'+desc+'</div>'+
+      '<div class="wtop">'+chips+(extra?'<span class="wtp">+'+extra+'</span>':'')+'</div>'+
+      '<div class="lvshape" style="background:'+c+'"></div>'+
+    '</button>';
+  }
+  var rq=READINGS.reduce(function(a,r){return a+r.qs.length;},0);
+  var rchips=READINGS.slice(0,2).map(function(r){return '<span class="wtp">'+esc(r.title)+'</span>';}).join('');
+  var wh=card('reading','Stages 8 &amp; 9','Reading',
+    READINGS.length+' long Cambridge-style texts with '+rq+' comprehension questions in total.',
+    'vi',rchips,READINGS.length-2);
+  ['stage8','stage9'].forEach(function(k){
+    var W=WRITING[k];
+    var chips=shuf(W.prompts).slice(0,2).map(function(p){return '<span class="wtp">'+esc(p.title)+'</span>';}).join('');
+    wh+=card('write:'+k,k==='stage8'?'Grade 6':'Grade 7',W.name,
+      'Write a'+(W.kind==='essay'?'n essay':'n article')+' on a random topic. '+W.reqWords+' words, marked the moment you hand it in.',
+      W.color,chips,W.prompts.length-2);
+  });
+  g('rwgrid').innerHTML=wh;
+  g('rwgrid').querySelectorAll('.lvc').forEach(function(b){
+    b.addEventListener('click',function(){openModule(this.getAttribute('data-mod'));});
+  });
 }
 function openModule(key){
   if(key==='reading'){buildReadingList();showScr('s-readlist');return;}
-  if(key.indexOf('lv:')===0){startMCQ(key.slice(3));return;}
   if(key.indexOf('write:')===0){startWriting(key.slice(6));return;}
 }
 
-/* ============ READING LIST ============ */
+/* ============ LISTA DE LECTURAS ============ */
 function buildReadingList(){
-  var grid=g('readgrid');grid.innerHTML='';
-  READINGS.forEach(function(r){
+  var h='';
+  READINGS.forEach(function(r,i){
     var c=cv(COL[r.color]),cd=cv(COLD[r.color]),cl=cv(COLL[r.color]);
-    var b=document.createElement('button');
-    b.className='lvc wide';
-    b.innerHTML='<div class="lvst" style="background:'+c+'"></div>'+
-      '<div class="lvn">'+esc(r.title)+'</div>'+
-      '<div class="lvd">'+r.topic+' · '+r.qs.length+' questions</div>'+
-      '<div class="lvb" style="background:'+cl+';color:'+cd+'">'+r.level+'</div>'+
-      '<div class="lvshape" style="background:'+c+'"></div>';
-    b.addEventListener('click',function(){startReading(r);});
-    grid.appendChild(b);
+    var words=r.paras.join(' ').split(/\s+/).length;
+    h+='<button class="lvc" data-r="'+i+'">'+
+      '<div class="lvst" style="background:'+c+'"></div>'+
+      '<div class="lvgr">'+r.level+' &middot; '+r.topic+'</div>'+
+      '<div class="lvn" style="color:'+c+'">'+esc(r.title)+'</div>'+
+      '<div class="lvd">'+r.paras.length+' paragraphs, about '+words+' words. Read it, then answer without looking away.</div>'+
+      '<div class="wtop"><span class="wtp">'+r.qs.length+' questions</span><span class="wtp">&#128274; Exam mode</span></div>'+
+      '<div class="lvshape" style="background:'+c+'"></div>'+
+    '</button>';
   });
-  g('readBack').onclick=function(){showScr('s-home');};
+  g('readgrid').innerHTML=h;
+  g('readgrid').querySelectorAll('.lvc').forEach(function(b){
+    b.addEventListener('click',function(){startReading(READINGS[parseInt(this.getAttribute('data-r'),10)]);});
+  });
 }
 
-/* ============ QUIZ ENGINE (MCQ + READING) ============ */
+/* ============ QUIZ (opcion multiple + lectura) ============ */
 function startMCQ(level){
   var L=LEVELS[level];
   var bank=shuf(QUESTIONS[level]).slice(0,Math.min(SETSIZE,QUESTIONS[level].length));
-  st={mode:'mcq',level:level,col:L.color,name:L.name,set:bank,idx:0,score:0,correct:0,streak:0,best:0,leaves:0,passage:null};
+  st={mode:'mcq',level:level,col:L.color,name:L.name,set:bank,idx:0,score:0,correct:0,streak:0,best:0,leaves:0,missed:[],passage:null,t0:Date.now()};
   leaveCount=0;pasteBlocks=0;
   beginQuiz();
 }
 function startReading(r){
-  st={mode:'reading',level:r.id,col:r.color,name:r.title,set:r.qs.slice(),idx:0,score:0,correct:0,streak:0,best:0,leaves:0,passage:r};
+  st={mode:'reading',level:r.id,col:r.color,name:r.title,set:r.qs.slice(),idx:0,score:0,correct:0,streak:0,best:0,leaves:0,missed:[],passage:r,t0:Date.now()};
   leaveCount=0;pasteBlocks=0;
   beginQuiz();
 }
 function beginQuiz(){
   setLock(true);
   var c=cv(COL[st.col]);
-  g('qpill').textContent=st.name;
-  g('qpill').style.background=c;
+  var pill=g('qpill');pill.textContent=st.name;pill.style.background=c;
   g('qfill').style.background=c;
-  g('nextBtn').style.background=c;
-  // passage panel
+  g('qfill').parentNode.style.setProperty('--seg',(100/st.set.length)+'%');
   var pw=g('qpassageWrap');
   if(st.mode==='reading'){
-    var html='<div class="passage"><h3>'+esc(st.passage.title)+'</h3><div class="pmeta">'+st.passage.level+' · '+st.passage.topic+'</div>';
+    var html='<div class="passage"><h3>'+esc(st.passage.title)+'</h3><div class="pmeta">'+st.passage.level+' &middot; '+st.passage.topic+'</div>';
     st.passage.paras.forEach(function(p){html+='<p>'+p+'</p>';});
-    html+='</div><div class="preadhint">Scroll the text above as you answer. Read carefully — you can\'t change an answer once chosen.</div>';
+    html+='</div><div class="preadhint">Scroll the text above as you answer &mdash; you cannot change an answer once you have chosen it.</div>';
     pw.innerHTML=html;
   }else{pw.innerHTML='';}
   showScr('s-quiz');
-  renderQ();
+  prepQ();renderQ();
+}
+/* Baraja las respuestas una vez por pregunta: si se barajaran en cada pintado,
+   al mostrar la explicacion cambiarian de sitio. */
+function prepQ(){
+  var q=st.set[st.idx];
+  var pairs=shuf(q.options.map(function(t,i){return{t:t,ok:i===0};}));
+  st.curOpts=pairs.map(function(p){return p.t;});
+  st.curCorrect=pairs.findIndex(function(p){return p.ok;});
+  st.answered=false;st.lastpick=-1;st.lastok=false;
 }
 function renderQ(){
-  var q=st.set[st.idx],c=cv(COL[st.col]),cl=cv(COLL[st.col]),cd=cv(COLD[st.col]);
-  var total=st.set.length;
+  var q=st.set[st.idx],total=st.set.length;
+  var c=cv(COL[st.col]);
   g('qprog').textContent='Question '+(st.idx+1)+' of '+total;
   g('qstreak').textContent='Streak '+st.streak;
-  g('qfill').style.width=((st.idx)/total*100)+'%';
+  g('qfill').style.width=(st.idx/total*100)+'%';
   g('qscore').textContent=st.score;
-  g('nextBtn').classList.remove('show');
-  g('nextBtn').textContent=(st.idx+1>=total)?'See results':'Next question';
 
-  // shuffle options keeping track of correct (options[0] is correct in data)
-  var pairs=q.options.map(function(t,i){return{t:t,ok:i===0};});
-  pairs=shuf(pairs);
-  st.curCorrect=pairs.findIndex(function(p){return p.ok;});
-  st.curWhy=q.why;st.curExtra=q.extra||'';
-
-  var card=g('qcard');
-  var letters=['A','B','C','D','E'];
-  var html='';
+  var tags,scen='';
   if(st.mode==='reading'){
-    html+='<div class="qtags"><span class="tag tags">'+st.passage.level+'</span>'+(q.skill?'<span class="tag tagt">'+q.skill+'</span>':'')+'</div>';
-    html+='<div class="qp">'+q.prompt+'</div>';
+    tags='<span class="tag tags">'+st.passage.level+'</span>'+(q.skill?'<span class="tag tagt">'+esc(q.skill)+'</span>':'');
   }else{
-    html+='<div class="qtags"><span class="tag tags">'+esc(q.subject||'')+'</span><span class="tag tagt">'+esc(q.pos||'')+'</span></div>';
-    if(q.scenario){
-      html+='<div class="schd"><span>In context</span><span class="schl"></span></div>';
-      html+='<div class="sc" style="border-left-color:'+c+'">'+q.scenario+'</div>';
-    }
-    html+='<div class="qp">'+q.prompt+'</div>';
+    tags='<span class="tag tags">'+esc(q.subject||'')+'</span><span class="tag tagt">'+esc(q.pos||'')+'</span>';
+    if(q.scenario)scen='<div class="sc">'+q.scenario+'</div>';
   }
-  html+='<div class="opts" id="opts">';
-  pairs.forEach(function(p,i){
-    html+='<button class="opt" data-i="'+i+'"><span class="olet">'+letters[i]+'</span><span>'+esc(p.t)+'</span></button>';
+  /* Cuatro columnas solo si las respuestas son cortas. Con frases enteras el
+     texto se partiria demasiado, asi que bajan a dos o a una. */
+  var maxLen=Math.max.apply(null,st.curOpts.map(function(o){return String(o).replace(/<[^>]*>/g,'').length;}));
+  var cols=maxLen<=45?'c4':(maxLen<=110?'c2':'c1');
+  var KK=['A','B','C','D','E'];
+  var oh='<div class="opts '+cols+'">'+st.curOpts.map(function(o,i){
+    return '<button class="opt" data-i="'+i+'"><span class="optk">'+KK[i]+'</span><span class="optt">'+esc(o)+'</span></button>';
+  }).join('')+'</div>';
+
+  var fh='';
+  if(st.answered){
+    var ok=st.lastok;
+    fh='<div class="fb '+(ok?'ok':'bad')+'">'+
+        '<div class="fb-hd"><span class="fb-badge">'+(ok?'CORRECT':'INCORRECT')+'</span>'+
+        '<span class="fb-ti">'+(ok?(st.streak>=3?st.streak+' in a row!':'Well done!'):'Here is the explanation:')+'</span></div>'+
+        '<div>'+q.why+'</div>'+
+        (q.extra?'<div class="fb-ex"><div class="fb-el">Also in real life</div>'+q.extra+'</div>':'')+
+      '</div>'+
+      '<button class="nxtbtn" id="nxtbtn" style="--nc:'+c+'">'+(st.idx<total-1?'Next question':'See my results')+' &#8594;</button>';
+  }
+  g('qbody').innerHTML='<div class="qcard"><div class="qtags">'+tags+'</div>'+scen+'<div class="qp">'+q.prompt+'</div></div>'+oh+fh;
+
+  g('qbody').querySelectorAll('.opt').forEach(function(b){
+    var i=parseInt(b.getAttribute('data-i'),10);
+    if(!st.answered){b.addEventListener('click',function(){doPick(i);});}
+    else{
+      b.disabled=true;
+      if(i===st.curCorrect)b.classList.add('ok');
+      else if(i===st.lastpick)b.classList.add('bad');
+    }
   });
-  html+='</div><div class="expl" id="expl"></div>';
-  card.innerHTML=html;
-  // tint hover via correct color
-  document.querySelectorAll('.opt').forEach(function(o){
-    o.addEventListener('click',function(){doPick(parseInt(o.getAttribute('data-i'),10));});
-  });
+  var nb=g('nxtbtn');if(nb)nb.addEventListener('click',doNext);
 }
 function doPick(i){
-  var opts=document.querySelectorAll('.opt');
-  if(opts[0].disabled)return;
-  opts.forEach(function(o){o.disabled=true;});
-  var correct=st.curCorrect;
-  var good=(i===correct);
-  opts[correct].classList.add('ok');
-  if(!good)opts[i].classList.add('bad');
-  if(good){st.score+=PTS;st.correct++;st.streak++;if(st.streak>st.best)st.best=st.streak;}
-  else{st.streak=0;}
-  g('qscore').textContent=st.score;
-  g('qstreak').textContent='Streak '+st.streak;
-  var ex=g('expl');
-  ex.className='expl '+(good?'good':'bad')+' show';
-  ex.innerHTML='<b>'+(good?'Correct'+(st.streak>=3?' · '+st.streak+' in a row!':''):'Not quite')+'</b>'+st.curWhy+(st.curExtra?'<div class="ex">💡 '+st.curExtra+'</div>':'');
-  g('nextBtn').classList.add('show');
-  g('nextBtn').scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(st.answered)return;
+  var q=st.set[st.idx];
+  st.answered=true;st.lastpick=i;st.lastok=(i===st.curCorrect);
+  if(st.lastok){
+    st.score+=PTS;st.correct++;st.streak++;
+    if(st.streak>st.best)st.best=st.streak;
+    toast('Correct! +'+PTS+' points',false,1600);
+  }else{
+    st.streak=0;
+    st.missed.push({
+      word:q.word||('Question '+(st.idx+1)),
+      meta:st.mode==='reading'?(q.skill||st.passage.topic):((q.subject||'')+' · '+(q.pos||'')),
+      why:String(q.why||'').replace(/<[^>]*>/g,'')
+    });
+    toast('Not quite — read the explanation.',false,2200);
+  }
+  renderQ();
 }
 function doNext(){
   st.idx++;
   if(st.idx>=st.set.length){finishQuiz();return;}
-  renderQ();
+  prepQ();renderQ();
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function finishQuiz(){
+async function finishQuiz(){
   setLock(false);
   var total=st.set.length,pct=Math.round(st.correct/total*100);
+  var c=cv(COL[st.col]);
+  var cc=pct>=60?c:'#c44a28';
+  var secs=Math.round((Date.now()-st.t0)/1000);
+  var stars=pct>=85?3:pct>=70?2:pct>=50?1:0;
+  var msgs={
+    3:'Outstanding — you are ready for this part of the quiz.',
+    2:'Great work. A little more practice and it is perfect.',
+    1:'A good effort. Read the explanations again and try another round.',
+    0:'This is exactly what practice is for. Review and go again.'
+  };
+  var sh='&#9733;'.repeat(stars)+'&#9734;'.repeat(3-stars);
+  var rev;
+  if(st.missed.length){
+    rev='<div class="revsec"><div class="revhd"><div class="revdot"></div>Worth reviewing</div>'+
+      st.missed.map(function(m){
+        return '<div class="revitem"><div class="revw">'+esc(m.word)+'</div><div class="revm">'+esc(m.meta)+'</div><div class="revwhy">'+esc(m.why.split('.')[0])+'.</div></div>';
+      }).join('')+'</div>';
+  }else{
+    rev='<div class="perfect">Perfect score — every question correct!</div>';
+  }
+  var leaveNote=st.leaves>0?'<div class="leavewarn">&#9888; You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'. In the real quiz, that would be flagged.</div>':'';
+
+  g('rbody').innerHTML='<div class="rainbow"></div>'+
+    '<div class="restop">'+
+      '<div class="rescirc" style="border-color:'+cc+'"><div class="resnum" style="color:'+cc+'">'+pct+'</div><div class="reslbl" style="color:'+cc+'">out of 100</div></div>'+
+      '<div class="resstars" style="color:#c47a10">'+sh+'</div>'+
+      '<div class="resmsg">'+msgs[stars]+'</div>'+
+      '<div class="ressub">'+esc(st.name)+' &middot; '+st.correct+' correct of '+total+'</div>'+
+      '<div class="resbarw"><div class="resbarf" style="width:'+pct+'%;background:'+cc+'"></div></div>'+
+    '</div>'+
+    '<div class="saverow" id="saverow"><div class="sdot"></div>Saving your result...</div>'+
+    '<div class="statsg">'+
+      '<div class="statc"><div class="statv" style="color:'+cc+'">'+st.correct+' / '+total+'</div><div class="statl">Correct</div></div>'+
+      '<div class="statc"><div class="statv">'+st.score+'</div><div class="statl">Points</div></div>'+
+      '<div class="statc"><div class="statv">'+st.best+'</div><div class="statl">Best streak</div></div>'+
+    '</div>'+leaveNote+rev+
+    '<div class="actrow"><button class="actbtn pri" id="rAgain" style="background:'+c+'">Practise again</button>'+
+    '<button class="actbtn" id="rHome">Main menu</button></div>';
+  showScr('s-result');
+  g('rAgain').addEventListener('click',function(){
+    if(st.mode==='reading')startReading(st.passage);else startMCQ(st.level);
+  });
+  g('rHome').addEventListener('click',function(){showScr('s-home');});
+
   var saveLevel=st.mode==='reading'?'reading':st.level;
   var saveTitle=st.mode==='reading'?st.passage.title:'';
-  doSave(saveLevel,pct,'',saveTitle,{correct:st.correct,total:total,integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}});
-  var c=cv(COL[st.col]);
-  var band,msg;
-  if(pct>=85){band="Excellent";msg="Outstanding work. You're well prepared for this part of the quiz.";}
-  else if(pct>=70){band="Strong";msg="Great job — you've got a solid grip on this. A little more practice and it's perfect.";}
-  else if(pct>=50){band="Getting there";msg="A good effort. Read the explanations again and try another round to lock it in.";}
-  else{band="Keep practising";msg="Don't worry — this is exactly what practice is for. Review the explanations and go again.";}
-  var circ=2*Math.PI*64, off=circ*(1-pct/100);
-  var leaveNote=st.leaves>0?'<div class="rmsg" style="color:var(--er-t)">⚠ You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'. In the real quiz, that would be flagged.</div>':'';
-  var s=g('s-result');
-  s.innerHTML='<div class="rainbow"></div><div class="rwrap">'+
-    '<div class="ring"><svg width="150" height="150"><circle cx="75" cy="75" r="64" fill="none" stroke="'+cv('--c3')+'" stroke-width="11"/><circle cx="75" cy="75" r="64" fill="none" stroke="'+c+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'"/></svg>'+
-    '<div class="ringtx"><div class="ringn" style="color:'+c+'">'+pct+'%</div><div class="ringl">Score</div></div></div>'+
-    '<div class="rband" style="color:'+c+'">'+band+'</div>'+
-    '<div class="rmsg">'+msg+'</div>'+leaveNote+
-    '<div class="rstats">'+
-      '<div class="rstat"><div class="rsn">'+st.correct+'/'+total+'</div><div class="rsl">Correct</div></div>'+
-      '<div class="rstat"><div class="rsn">'+st.score+'</div><div class="rsl">Points</div></div>'+
-      '<div class="rstat"><div class="rsn">'+st.best+'</div><div class="rsl">Best streak</div></div>'+
-    '</div>'+
-    '<div class="rbtns"><button class="rbtn pri" id="rAgain" style="background:'+c+'">Practise again</button>'+
-    '<button class="rbtn sec" id="rHome">Back to menu</button></div></div>';
-  g('rAgain').onclick=function(){
-    if(st.mode==='reading'){startReading(st.passage);}else{startMCQ(st.level);}
-  };
-  g('rHome').onclick=function(){showScr('s-home');};
-  showScr('s-result');
+  await doSave(saveLevel,pct,'',saveTitle,{correct:st.correct,total:total,integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}});
+  var sr=g('saverow');if(sr){sr.className='saverow saved';sr.innerHTML='<div class="sdot"></div>Result saved.';}
 }
 
-/* ============ WRITING ENGINE ============ */
-var CONNECTIVES=["however","although","because","therefore","moreover","furthermore","in addition","for example","for instance","on the other hand","firstly","secondly","finally","in conclusion","as a result","nevertheless","whereas","despite","in contrast","also","besides","meanwhile","since","thus","hence","while","yet","so that","such as","to sum up","overall","in my opinion","i believe","i think"];
+/* ============ ESCRITURA ============ */
 function startWriting(stage){
   var W=WRITING[stage];
   var p=W.prompts[Math.floor(Math.random()*W.prompts.length)];
-  st={mode:'write',stage:stage,col:W.color,cfg:W,prompt:p,leaves:0};
+  st={mode:'write',stage:stage,col:W.color,cfg:W,prompt:p,text:'',leaves:0,t0:Date.now()};
   leaveCount=0;pasteBlocks=0;
   setLock(true);
   var c=cv(COL[W.color]);
-  g('wtag').textContent=W.name;g('wtag').style.background=c;
-  g('wtitle').textContent=p.title;
-  g('wprompt').textContent=p.prompt;
-  g('waud').innerHTML='<b>Audience:</b> '+esc(p.audience)+' &nbsp;·&nbsp; <b>Aim for at least</b> '+p.minWords+' words';
-  g('wta').value='';g('wta').style.borderColor='';
-  g('wsubmit').style.background=c;
-  g('wnum').textContent='0';
-  g('wgoal').textContent='/ '+p.minWords;
-  g('wready').textContent='';
-  g('wsubmit').disabled=true;
+  var tag=g('wtag');tag.textContent=W.name;tag.style.background=c;
   showScr('s-write');
-  g('wta').focus();
+  renderWritePrompt();
+}
+/* Cuaderno: una tira con el tema arriba, la hoja rayada ocupando todo el alto y
+   el pie con el anillo de progreso. La consigna completa se despliega aparte. */
+function renderWritePrompt(){
+  var p=st.prompt,cfg=st.cfg;
+  var req=cfg.reqWords||p.minWords;
+  var c=cv(COL[cfg.color]),cd=cv(COLD[cfg.color]),cl=cv(COLL[cfg.color]);
+  g('wbody').innerHTML=
+    '<div class="wstrip">'+
+      '<span class="wtopic" style="background:'+cl+';color:'+cd+'">'+esc(p.topic)+'</span>'+
+      '<span class="wstrip-t">'+esc(p.title)+'</span>'+
+      '<button class="wmore" id="wmorebtn" aria-expanded="false">See the full task</button>'+
+      '<span class="wchip">&#128221; '+req+'+ words required</span>'+
+      '<span class="wchip">&#128274; Exam mode</span>'+
+    '</div>'+
+    '<div class="wtaskpanel" id="wtaskpanel" hidden>'+
+      '<div class="wtask">'+esc(p.prompt)+'</div>'+
+      '<div class="wmeta-row">'+
+        '<span class="wmeta-chip">&#9999;&#65039; '+(cfg.kind==='essay'?'Essay':'Article')+'</span>'+
+        '<span class="wmeta-chip">&#128101; '+esc(p.audience)+'</span>'+
+      '</div>'+
+      '<div class="wnote">&#128204; This is practice: the score is an estimate to guide you, not your official grade.</div>'+
+      '<div class="wnote exam">&#128274; Exam mode: no pasting and no switching tabs &mdash; the writing must be your own.</div>'+
+      '<button class="wshuffle" id="wshufbtn">&#127922; Give me a different topic</button>'+
+    '</div>'+
+    '<div class="wpaper">'+
+      '<textarea class="wta" id="wta" spellcheck="false" placeholder="Start writing here. Take your time, plan your ideas, and write in full paragraphs...">'+esc(st.text||'')+'</textarea>'+
+      '<div class="wpfoot">'+
+        '<div class="wprog">'+
+          '<div class="wring" id="wring"><span id="wringn">0%</span></div>'+
+          '<span class="wwc" id="wwc">0 of '+req+' words</span>'+
+        '</div>'+
+        '<div class="wbtns"><button class="wsubmit" id="wsubmit" disabled>Get feedback</button></div>'+
+      '</div>'+
+    '</div>';
+  var ta=g('wta'),wc=g('wwc'),sb=g('wsubmit'),ring=g('wring'),ringn=g('wringn');
+  function upd(){
+    var n=countWords(ta.value);st.text=ta.value;
+    var pct=Math.max(0,Math.min(100,Math.round(n/req*100)));
+    ring.style.setProperty('--p',pct+'%');ringn.textContent=pct+'%';
+    if(n>=req){wc.innerHTML='<b>'+n+' words &middot; minimum reached &#10003;</b>';wc.className='wwc ok';ring.classList.add('done');}
+    else{wc.innerHTML=n+' of '+req+' words &middot; '+(req-n)+' more to submit';wc.className='wwc';ring.classList.remove('done');}
+    sb.disabled=n<req;
+  }
+  ta.addEventListener('input',upd);upd();
+  /* La consigna completa se despliega solo si el alumno la pide, para no robarle
+     alto a la hoja mientras escribe. */
+  var mb=g('wmorebtn'),panel=g('wtaskpanel');
+  mb.addEventListener('click',function(){
+    var open=panel.hasAttribute('hidden');
+    if(open)panel.removeAttribute('hidden');else panel.setAttribute('hidden','');
+    mb.setAttribute('aria-expanded',open?'true':'false');
+    mb.textContent=open?'Hide the task':'See the full task';
+  });
+  g('wshufbtn').addEventListener('click',function(){
+    var arr=cfg.prompts.filter(function(x){return x.title!==st.prompt.title;});
+    st.prompt=arr[Math.floor(Math.random()*arr.length)];st.text='';renderWritePrompt();
+  });
+  sb.addEventListener('click',gradeWriting);
+  ta.focus();
+}
+function renderGrading(){
+  g('wbody').innerHTML='<div class="wgrading"><div class="wspin"></div>'+
+    '<div class="wgrading-t">Your '+(st.cfg.kind==='essay'?'essay':'article')+' is being marked</div>'+
+    '<div class="wgrading-s">Checking your structure, vocabulary and language...</div></div>';
+}
+function gradeWriting(){
+  var text=g('wta').value;
+  st.text=text;
+  renderGrading();
+  setTimeout(function(){finishWriting(text);},650);
+}
+async function finishWriting(text){
+  var a=analyzeWriting(text,st.prompt);
+  var sc=scoreWriting(a);
+  var fb=buildFeedback(a,sc,st.prompt);
+  setLock(false);
+  var pct=sc.overall;
+  var cc=pct>=80?'#0f9e72':pct>=60?'#c47a10':'#c44a28';
+  var band=pct>=80?'Excellent draft':pct>=65?'Good draft':pct>=50?'Developing draft':'Keep working';
+  var secs=Math.round((Date.now()-st.t0)/1000);
+  var bandDefs=[['Content &amp; ideas',sc.content],['Structure',sc.structure],['Vocabulary',sc.vocab],['Sentence variety',sc.variety],['Accuracy',sc.acc]];
+  var bh=bandDefs.map(function(b){
+    var v=Math.max(0,Math.min(100,Math.round(b[1])));
+    var bc=v>=80?'#0f9e72':v>=60?'#c47a10':'#c44a28';
+    return '<div class="wbandc"><div class="bn">'+b[0]+'<span class="bsc" style="color:'+bc+'">'+v+'</span></div><div class="wbar"><div style="width:'+v+'%;background:'+bc+'"></div></div></div>';
+  }).join('');
+  var good=fb.good.map(function(s){return '<div class="wfb-li good">'+esc(s)+'</div>';}).join('');
+  var work=fb.work.map(function(s){return '<div class="wfb-li work">'+esc(s)+'</div>';}).join('');
+  var leaveNote=st.leaves>0?'<div class="leavewarn">&#9888; You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'.</div>':'';
+  var c=cv(COL[st.col]);
+
+  g('wrbody').innerHTML='<div class="rainbow"></div>'+
+    '<div class="wfb-top">'+
+      '<div class="wfb-circ" style="border-color:'+cc+'"><div class="wfb-num" style="color:'+cc+'">'+pct+'</div><div class="wfb-lbl" style="color:'+cc+'">out of 100</div></div>'+
+      '<div class="wfb-msg">'+band+'</div>'+
+      '<div class="wfb-sub">'+st.cfg.name+' &middot; '+countWords(text)+' words &middot; '+secs+'s</div>'+
+    '</div>'+
+    '<div class="wsaverow" id="wsaverow"><div class="sdot"></div>Saving your result...</div>'+
+    '<div class="wband">'+bh+'</div>'+leaveNote+
+    '<div class="wfb-summary"><b>Practice estimate:</b> this score is here to guide you before the real quiz &mdash; it is not your official grade. Use the two lists below to improve your next draft.</div>'+
+    '<div class="wfb-block"><div class="wfb-h"><span class="dot" style="background:#3daa6f"></span>What you did well</div>'+good+'</div>'+
+    '<div class="wfb-block"><div class="wfb-h"><span class="dot" style="background:#c47a10"></span>What to work on</div>'+work+'</div>'+
+    '<div class="actrow"><button class="actbtn pri" id="wAgain" style="background:'+c+'">New topic</button>'+
+    '<button class="actbtn" id="wHome">Main menu</button></div>';
+  showScr('s-wresult');
+  g('wAgain').addEventListener('click',function(){startWriting(st.stage);});
+  g('wHome').addEventListener('click',function(){showScr('s-home');});
+
+  await doSave(st.stage,pct,text,st.prompt.title,{
+    bands:{content:sc.content,structure:sc.structure,vocabulary:sc.vocab,variety:sc.variety,accuracy:sc.acc},
+    summary:band+' — practice score '+pct+'/100.',
+    good:fb.good,work:fb.work,
+    integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}
+  });
+  var sr=g('wsaverow');if(sr){sr.className='wsaverow saved';sr.innerHTML='<div class="sdot"></div>Result saved.';}
+}
+
+/* ============ PANEL DEL PROFESOR ============ */
+var dashView='all',dashHist=[];
+function initTeacher(){
+  g('tlbtn').addEventListener('click',doTeacherLogin);
+  g('tpass').addEventListener('keydown',function(e){if(e.key==='Enter')doTeacherLogin();});
+  g('tbk').addEventListener('click',function(){showScr('s-name');});
+  g('dex').addEventListener('click',function(){if(dTimer){clearInterval(dTimer);dTimer=null;}showScr('s-name');});
+  g('rfbtn').addEventListener('click',loadDash);
+  g('fdate').addEventListener('change',loadDash);
+  g('factiv').addEventListener('change',loadDash);
+  g('dlbtn').addEventListener('click',exportBackup);
+  /* Las pastillas sustituyen a dos desplegables: se ve el filtro activo sin abrir nada. */
+  g('dchips').addEventListener('click',function(e){
+    var b=e.target.closest('.dchip');if(!b)return;
+    if(b.hasAttribute('data-view')){
+      dashView=b.getAttribute('data-view');
+      g('dchips').querySelectorAll('[data-view]').forEach(function(x){x.classList.toggle('on',x===b);});
+      renderDash(dashRows);
+    }else{
+      g('fcourse').value=b.getAttribute('data-course');
+      g('dchips').querySelectorAll('[data-course]').forEach(function(x){x.classList.toggle('on',x===b);});
+      loadDash();
+    }
+  });
+}
+function doTeacherLogin(){
+  if(g('tpass').value===TP){
+    g('perr').style.display='none';
+    if(!g('fdate').value)g('fdate').value=today();
+    showScr('s-dash');loadDash();
+    if(dTimer)clearInterval(dTimer);
+    dTimer=setInterval(loadDash,30000);
+  }else{g('perr').style.display='block';}
+}
+function dayOf(x){return String(x.created_at||'').slice(0,10);}
+/* Resume los siete dias que terminan en dateStr. Se calcula con las mismas filas
+   que ya trajimos, sin pedir nada extra al servidor. */
+function buildHist(all,dateStr){
+  var base=new Date(dateStr+'T00:00:00.000Z').getTime();
+  var out=[];
+  for(var i=6;i>=0;i--){
+    var d=new Date(base-i*86400000).toISOString().slice(0,10);
+    var rv=all.filter(function(x){return dayOf(x)===d;});
+    var t=rv.length;
+    out.push({date:d,total:t,
+      avg:t?Math.round(rv.reduce(function(s,x){return s+(x.score||0);},0)/t):0,
+      pass:t?Math.round(rv.filter(function(x){return (x.score||0)>=60;}).length/t*100):0,
+      risk:rv.filter(function(x){return (x.score||0)<60;}).length});
+  }
+  return out;
+}
+function drawSpark(id,vals,color){
+  var el=g(id);if(!el)return;
+  var mx=Math.max.apply(null,vals.concat([1]));
+  el.innerHTML=vals.map(function(v){
+    return '<i style="height:'+Math.max(5,Math.round(v/mx*100))+'%;background:'+color+'"></i>';
+  }).join('');
+}
+/* Compara con la ultima sesion anterior que tuvo datos, no con "ayer" a secas:
+   si no hubo clase el lunes, comparar con el lunes no diria nada. */
+function drawDelta(id,cur,prev,unit,goodUp){
+  var el=g(id);if(!el)return;
+  if(prev===null||prev===undefined){el.className='metd flat';el.textContent='no earlier session to compare with';return;}
+  var d=cur-prev;
+  if(d===0){el.className='metd flat';el.textContent='same as the previous session';return;}
+  var up=d>0;
+  el.className='metd '+((goodUp?up:!up)?'up':'dn');
+  el.innerHTML=(up?'&#9650;':'&#9660;')+' '+Math.abs(d)+unit+' vs the previous session';
+}
+/* Una sesion de verdad, no un registro suelto de prueba: por debajo de tres
+   resultados la comparacion enganaria mas de lo que informa. */
+var MIN_SESSION=3;
+function prevWithData(field){
+  for(var i=dashHist.length-2;i>=0;i--){if(dashHist[i].total>=MIN_SESSION)return dashHist[i][field];}
+  return null;
+}
+async function loadDash(){
+  if(!db){g('dtbl').innerHTML='<div class="emptyd">Supabase is not connected (check your internet).</div>';return;}
+  g('dtbl').innerHTML='<div class="emptyd">Loading...</div>';
+  var dateStr=(g('fdate')&&g('fdate').value)||today();
+  var courseF=g('fcourse')?g('fcourse').value:'';
+  var activF=g('factiv')?g('factiv').value:'';
+  var dayStart=new Date(dateStr+'T00:00:00.000Z').getTime();
+  var start=new Date(dayStart-6*86400000).toISOString();   // una semana en una sola consulta
+  var end=new Date(dayStart+86400000).toISOString();
+  try{
+    var r=await db.from(TABLE).select('*').gte('created_at',start).lt('created_at',end).order('created_at',{ascending:false});
+    if(r.error||!r.data){g('dtbl').innerHTML='<div class="emptyd">Could not load data. Check the connection or that the '+TABLE+' table exists.</div>';return;}
+    var all=r.data;
+    if(courseF)all=all.filter(function(x){return (x.course||'')===courseF;});
+    if(activF)all=all.filter(function(x){return x.level===activF;});
+    dashHist=buildHist(all,dateStr);
+    dashRows=all.filter(function(x){return dayOf(x)===dateStr;});
+    renderDash(dashRows);
+  }catch(e){g('dtbl').innerHTML='<div class="emptyd">Connection error: '+esc(e.message)+'</div>';}
+}
+function renderDash(rows){
+  rows=rows||[];
+  var total=rows.length;
+  var avg=total?Math.round(rows.reduce(function(a,r){return a+(r.score||0);},0)/total):0;
+  var pr=total?Math.round(rows.filter(function(r){return (r.score||0)>=60;}).length/total*100):0;
+  var risk=rows.filter(function(r){return (r.score||0)<60;}).length;
+  g('mtot').textContent=total;
+  g('mavg').textContent=total?avg:'--';
+  g('mpass').textContent=total?pr+'%':'--';
+  g('mrisk').textContent=risk;
+
+  drawDelta('dtot',total,prevWithData('total'),'',true);
+  drawDelta('davg',avg,prevWithData('avg'),' points',true);
+  drawDelta('dpass',pr,prevWithData('pass'),' points',true);
+  var rl=g('drisk');rl.className='metd';
+  rl.textContent=risk===1?'1 attempt scored under 60':risk+' attempts scored under 60';
+
+  drawSpark('stot',dashHist.map(function(d){return d.total;}),'#1a6fc4');
+  drawSpark('savg',dashHist.map(function(d){return d.avg;}),'#0f9e72');
+  drawSpark('spass',dashHist.map(function(d){return d.pass;}),'#c47a10');
+  drawSpark('srisk',dashHist.map(function(d){return d.risk;}),'#c44a28');
+
+  var lo=['beginner','elementary','intermediate','expert','reading','stage8','stage9'];
+  var bl='';
+  lo.forEach(function(lv){
+    var rv=rows.filter(function(x){return x.level===lv;});if(!rv.length)return;
+    var a=Math.round(rv.reduce(function(s,x){return s+(x.score||0);},0)/rv.length);
+    bl+='<div class="brow"><span class="bl">'+LVN[lv]+'</span><div class="bt"><div class="bf" style="width:'+a+'%;background:'+LVC[lv]+'"></div></div><span class="bv">'+a+'</span></div>';
+  });
+  g('dbylv').innerHTML=bl||'<div class="emptyd">No data yet</div>';
+  var bk=[{l:'90-100',mn:90,mx:100,c:'#0f9e72'},{l:'70-89',mn:70,mx:89,c:'#3daa6f'},{l:'50-69',mn:50,mx:69,c:'#c47a10'},{l:'0-49',mn:0,mx:49,c:'#c44a28'}];
+  var di='';
+  bk.forEach(function(b){
+    var cnt=rows.filter(function(r){return (r.score||0)>=b.mn&&(r.score||0)<=b.mx;}).length;
+    di+='<div class="brow"><span class="bl">'+b.l+'</span><div class="bt"><div class="bf" style="width:'+(total?Math.round(cnt/total*100):0)+'%;background:'+b.c+'"></div></div><span class="bv">'+cnt+'</span></div>';
+  });
+  g('ddist').innerHTML=di;
+
+  /* Las pastillas llevan su cuenta, para saber si merece la pena pulsarlas. */
+  var nWri=rows.filter(function(r){return r.level==='stage8'||r.level==='stage9';}).length;
+  var nRead=rows.filter(function(r){return r.level==='reading';}).length;
+  var chips=g('dchips');
+  chips.querySelector('[data-view="all"]').textContent='All results ('+total+')';
+  chips.querySelector('[data-view="risk"]').innerHTML='&#9679; Needs attention ('+risk+')';
+  chips.querySelector('[data-view="writing"]').textContent='Writing only ('+nWri+')';
+  chips.querySelector('[data-view="reading"]').textContent='Reading only ('+nRead+')';
+
+  var view=rows;
+  if(dashView==='risk')view=rows.filter(function(r){return (r.score||0)<60;});
+  else if(dashView==='writing')view=rows.filter(function(r){return r.level==='stage8'||r.level==='stage9';});
+  else if(dashView==='reading')view=rows.filter(function(r){return r.level==='reading';});
+
+  var lc={};rows.forEach(function(r){lc[r.level]=(lc[r.level]||0)+1;});
+  var top=Object.keys(lc).sort(function(a,b){return lc[b]-lc[a];})[0];
+  var dateStr=(g('fdate')&&g('fdate').value)||today();
+  g('dhd').textContent=(dateStr===today()?'Today':dateStr)+' · showing '+view.length+' of '+total+' results'+(top?' · most practised: '+(LVN[top]||top):'');
+
+  if(!view.length){
+    g('dtbl').innerHTML='<div class="emptyd">'+(total?'Nothing matches this filter.':'No practice results for this day yet.')+'</div>';
+    return;
+  }
+  function sf(s){return s>=80?'&#9733;&#9733;&#9733;':s>=60?'&#9733;&#9733;&#9734;':s>=40?'&#9733;&#9734;&#9734;':'&#9734;&#9734;&#9734;';}
+  function pf(s){return s>=80?['Excellent','#0f9e72','#e0f5ee']:s>=60?['Good','#c47a10','#fdf0d8']:['Needs work','#c44a28','#fdeee9'];}
+  var trs=view.map(function(r,idx){
+    var tm=new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    var s=r.score||0,pff=pf(s);
+    var stripe=s>=80?'#3daa6f':(s>=60?'#c47a10':'#c44a28');
+    var readBtn=r.essay_text?' <button class="readbtn" data-row="'+idx+'">&#128196; Read</button>':'';
+    var flag='';
+    try{
+      var fbp=r.feedback?JSON.parse(r.feedback):null;
+      if(fbp&&fbp.integrity){
+        var ts=fbp.integrity.tabSwitches||0,pb=fbp.integrity.pasteBlocked||0;
+        if(ts>0||pb>0)flag=' <span title="Left the page '+ts+' time(s); paste blocked '+pb+' time(s)" style="color:#c44a28;font-weight:900;cursor:help">&#9888;</span>';
+      }
+    }catch(_){}
+    return '<tr><td><div class="stcell"><span class="stripe" style="background:'+stripe+'"></span><div><div style="font-weight:700">'+esc(r.student||'')+'</div>'+(r.course?'<div style="font-size:11px;font-weight:600;color:var(--tx2)">'+esc(r.course)+'</div>':'')+'</div></div></td>'+
+      '<td><span class="lvdot" style="background:'+(LVC[r.level]||'#888')+'"></span>'+(LVN[r.level]||r.level)+'</td>'+
+      '<td><strong>'+s+'</strong>/100<div class="sct"><div class="scf" style="width:'+s+'%;background:'+(s>=60?'#0f9e72':'#c44a28')+'"></div></div></td>'+
+      '<td style="color:#c47a10;font-size:12px">'+sf(s)+'</td>'+
+      '<td><span class="perfb" style="background:'+pff[2]+';color:'+pff[1]+'">'+pff[0]+'</span>'+flag+readBtn+'</td>'+
+      '<td style="color:#b0aea4;font-size:12px">'+tm+'</td></tr>';
+  }).join('');
+  g('dtbl').innerHTML='<table class="stbl"><thead><tr><th>Student</th><th>Activity</th><th>Score</th><th>Stars</th><th>Performance</th><th>Time</th></tr></thead><tbody>'+trs+'</tbody></table>';
+  g('dtbl').querySelectorAll('.readbtn').forEach(function(b){
+    b.addEventListener('click',function(){openEssay(view[parseInt(this.getAttribute('data-row'),10)]);});
+  });
+}
+function openEssay(r){
+  var fb=null;try{fb=r.feedback?JSON.parse(r.feedback):null;}catch(_){}
+  var h='';
+  if(fb&&fb.bands){
+    h+='<div class="emb-bands">'+['content','structure','vocabulary','variety','accuracy'].map(function(k){
+      var v=fb.bands[k]||0;var c=v>=80?'#0f9e72':v>=60?'#c47a10':'#c44a28';
+      return '<div class="emb-b"><span>'+k.charAt(0).toUpperCase()+k.slice(1)+'</span><b style="color:'+c+'">'+v+'</b></div>';
+    }).join('')+'</div>';
+    if(fb.summary)h+='<div class="emb-sum">'+esc(fb.summary)+'</div>';
+    if(fb.work&&fb.work.length)h+='<div class="emb-sum"><b>To work on:</b> '+esc(fb.work.slice(0,3).join(' · '))+'</div>';
+  }
+  if(fb&&fb.integrity&&((fb.integrity.tabSwitches||0)>0||(fb.integrity.pasteBlocked||0)>0)){
+    h+='<div style="margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--er-bg);border:1.5px solid var(--er-b);color:var(--er-t);font-size:12.5px;font-weight:700">&#9888; Left the page <b>'+(fb.integrity.tabSwitches||0)+'</b> time(s); paste blocked <b>'+(fb.integrity.pasteBlocked||0)+'</b> time(s).</div>';
+  }
+  var txt=(r.essay_text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  g('emodal').innerHTML='<div class="emodal-card"><div class="emodal-top"><div><div class="emodal-name">'+esc(r.student||'')+'</div><div class="emodal-meta">'+(r.course?esc(r.course)+' &middot; ':'')+(LVN[r.level]||r.level)+(r.essay_title?' &middot; '+esc(r.essay_title):'')+' &middot; Score: <b>'+(r.score||0)+'</b>/100</div></div><button class="emodal-x" id="emx">&#10005;</button></div>'+h+'<div class="emodal-lbl">Student\'s writing</div><div class="emodal-text">'+txt+'</div></div>';
+  g('emodal').classList.add('show');
+  g('emx').addEventListener('click',function(){g('emodal').classList.remove('show');});
+  g('emodal').addEventListener('click',function(e){if(e.target===g('emodal'))g('emodal').classList.remove('show');});
 }
 function countWords(s){var t=(s||'').trim();return t?t.split(/\s+/).length:0;}
-function onWrite(){
-  var n=countWords(g('wta').value),min=st.prompt.minWords;
-  g('wnum').textContent=n;
-  if(n>=min){g('wready').innerHTML='<b style="color:var(--ok-b)">✓ Ready to submit</b>';g('wsubmit').disabled=false;}
-  else{g('wready').textContent=(min-n)+' more words to reach the minimum';g('wsubmit').disabled=true;}
-}
 function analyzeWriting(text,p){
   var words=text.trim().split(/\s+/).filter(Boolean);
   var wc=words.length;
@@ -950,137 +2043,6 @@ function buildFeedback(a,sc,p){
   if(good.length===0)good.push("You completed the task — that's the first step. Keep building from here.");
   return {good:good.slice(0,5),work:work.slice(0,6)};
 }
-function gradeWriting(){
-  var text=g('wta').value;
-  var a=analyzeWriting(text,st.prompt);
-  var sc=scoreWriting(a);
-  var fb=buildFeedback(a,sc,st.prompt);
-  setLock(false);
-  var c=cv(COL[st.col]);
-  var pct=sc.overall;
-  var band;
-  if(pct>=80)band="Excellent draft";else if(pct>=65)band="Good draft";else if(pct>=50)band="Developing draft";else band="Keep working";
-  doSave(st.stage,pct,text,st.prompt.title,{bands:{content:sc.content,structure:sc.structure,vocabulary:sc.vocab,variety:sc.variety,accuracy:sc.acc},summary:band+' — practice score '+pct+'/100.',good:fb.good,work:fb.work,integrity:{tabSwitches:st.leaves||0,pasteBlocked:pasteBlocks}});
-  var circ=2*Math.PI*64, off=circ*(1-pct/100);
-  function bar(label,val){
-    return '<div class="fbrow"><div class="fblbl">'+label+'</div><div class="fbbar"><div class="fbfill" style="width:'+val+'%;background:'+c+'"></div></div><div class="fbval">'+val+'</div></div>';
-  }
-  var goodLi=fb.good.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');
-  var workLi=fb.work.map(function(t){return '<li>'+esc(t)+'</li>';}).join('');
-  var leaveNote=st.leaves>0?'<div class="rmsg" style="color:var(--er-t)">⚠ You left the exercise '+st.leaves+' time'+(st.leaves>1?'s':'')+'.</div>':'';
-  var s=g('s-wresult');
-  s.innerHTML='<div class="rainbow"></div><div class="rwrap">'+
-    '<div class="ring"><svg width="150" height="150"><circle cx="75" cy="75" r="64" fill="none" stroke="'+cv('--c3')+'" stroke-width="11"/><circle cx="75" cy="75" r="64" fill="none" stroke="'+c+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'"/></svg>'+
-    '<div class="ringtx"><div class="ringn" style="color:'+c+'">'+pct+'</div><div class="ringl">Practice score</div></div></div>'+
-    '<div class="rband" style="color:'+c+'">'+band+'</div>'+
-    '<div class="rmsg">This is a practice estimate to guide you — not your official grade. Use the feedback below to improve before the real quiz.</div>'+leaveNote+'</div>'+
-    '<div class="fbcard"><div class="fbh">📊 Skills breakdown</div>'+
-      bar("Content & ideas",sc.content)+bar("Structure",sc.structure)+bar("Vocabulary",sc.vocab)+bar("Sentence variety",sc.variety)+bar("Accuracy (estimate)",sc.acc)+'</div>'+
-    '<div class="fbcard"><div class="fbh">✅ What you did well</div><ul class="fblist good">'+goodLi+'</ul></div>'+
-    '<div class="fbcard"><div class="fbh">🎯 What to work on</div><ul class="fblist work">'+workLi+'</ul></div>'+
-    '<div class="rbtns"><button class="rbtn pri" id="wAgain" style="background:'+c+'">New topic</button>'+
-    '<button class="rbtn sec" id="wHome">Back to menu</button></div>';
-  g('wAgain').onclick=function(){startWriting(st.stage);};
-  g('wHome').onclick=function(){showScr('s-home');};
-  showScr('s-wresult');
-  window.scrollTo(0,0);
-}
-
-/* ============ TEACHER DASHBOARD ============ */
-function initTeacher(){
-  g('tlbtn').addEventListener('click',doTeacherLogin);
-  g('tpass').addEventListener('keydown',function(e){if(e.key==='Enter')doTeacherLogin();});
-  g('tbk').addEventListener('click',function(){showScr('s-name');});
-  g('dex').addEventListener('click',function(){if(dTimer){clearInterval(dTimer);dTimer=null;}showScr('s-name');});
-  g('rfbtn').addEventListener('click',loadDash);
-  g('fdate').addEventListener('change',loadDash);
-  g('fcourse').addEventListener('change',loadDash);
-  g('factiv').addEventListener('change',loadDash);
-  g('dlbtn').addEventListener('click',exportBackup);
-}
-function doTeacherLogin(){
-  if(g('tpass').value===TP){
-    g('perr').style.display='none';
-    if(!g('fdate').value)g('fdate').value=today();
-    showScr('s-dash');loadDash();
-    if(dTimer)clearInterval(dTimer);
-    dTimer=setInterval(loadDash,30000);
-  }else{g('perr').style.display='block';}
-}
-async function loadDash(){
-  if(!db){g('dtbl').innerHTML='<div class="emptyd">Supabase is not connected (check your internet).</div>';return;}
-  g('dtbl').innerHTML='<div class="emptyd">Loading…</div>';
-  var dateStr=(g('fdate')&&g('fdate').value)||today();
-  var courseF=g('fcourse')?g('fcourse').value:'';
-  var activF=g('factiv')?g('factiv').value:'';
-  var start=dateStr+'T00:00:00.000Z';
-  var end=new Date(new Date(start).getTime()+86400000).toISOString();
-  try{
-    var r=await db.from(TABLE).select('*').gte('created_at',start).lt('created_at',end).order('created_at',{ascending:false});
-    if(r.error||!r.data){g('dtbl').innerHTML='<div class="emptyd">Could not load data. Check the connection or that the '+TABLE+' table exists.</div>';return;}
-    var rows=r.data;
-    if(courseF)rows=rows.filter(function(x){return (x.course||'')===courseF;});
-    if(activF)rows=rows.filter(function(x){return x.level===activF;});
-    dashRows=rows;
-    var hd=g('dhd');if(hd)hd.textContent='Results '+(dateStr===today()?'today':dateStr)+(courseF?' · '+courseF:'')+(activF?' · '+(LVN[activF]||activF):'')+' ('+rows.length+')';
-    renderDash(rows);
-  }catch(e){g('dtbl').innerHTML='<div class="emptyd">Connection error: '+esc(e.message)+'</div>';}
-}
-function renderDash(rows){
-  var total=rows.length;
-  var avg=total?Math.round(rows.reduce(function(a,r){return a+(r.score||0);},0)/total):0;
-  var pass=rows.filter(function(r){return (r.score||0)>=60;}).length;
-  var pr=total?Math.round(pass/total*100):0;
-  var lc={};rows.forEach(function(r){lc[r.level]=(lc[r.level]||0)+1;});
-  var tlv=Object.entries(lc).sort(function(a,b){return b[1]-a[1];})[0];
-  g('mtot').textContent=total;g('mavg').textContent=total?avg:'--';
-  g('mpass').textContent=total?pr+'%':'--';
-  g('mtop').textContent=tlv?(LVN[tlv[0]]||tlv[0]):'--';
-  var lo=['beginner','elementary','intermediate','expert','reading','stage8','stage9'];
-  var bl='';
-  lo.forEach(function(lv){
-    var rv=rows.filter(function(x){return x.level===lv;});if(!rv.length)return;
-    var a=Math.round(rv.reduce(function(s,x){return s+(x.score||0);},0)/rv.length);
-    bl+='<div class="brow"><span class="bl">'+LVN[lv]+'</span><div class="bt"><div class="bf" style="width:'+a+'%;background:'+LVC[lv]+'"></div></div><span class="bv">'+a+'</span></div>';
-  });
-  g('dbylv').innerHTML=bl||'<div class="emptyd">No data yet</div>';
-  var bk=[{l:'90-100',mn:90,mx:100,c:'#0f9e72'},{l:'70-89',mn:70,mx:89,c:'#3daa6f'},{l:'50-69',mn:50,mx:69,c:'#c47a10'},{l:'0-49',mn:0,mx:49,c:'#c44a28'}];
-  var di='';
-  bk.forEach(function(b){
-    var cnt=rows.filter(function(r){return (r.score||0)>=b.mn&&(r.score||0)<=b.mx;}).length;
-    var pct=total?Math.round(cnt/total*100):0;
-    di+='<div class="brow"><span class="bl">'+b.l+'</span><div class="bt"><div class="bf" style="width:'+pct+'%;background:'+b.c+'"></div></div><span class="bv">'+cnt+'</span></div>';
-  });
-  g('ddist').innerHTML=di||'<div class="emptyd">No data yet</div>';
-  if(!rows.length){g('dtbl').innerHTML='<div class="emptyd">No practice results for this day yet.</div>';return;}
-  function pf(s){return s>=80?['Excellent','#145c35','#e8f7ef']:s>=60?['Good','#633806','#fdf0d8']:['Needs work','#712b13','#fdeee9'];}
-  var trs=rows.map(function(r,idx){
-    var tm=new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    var pff=pf(r.score||0);
-    var readBtn=r.essay_text?' <button class="readbtn" data-row="'+idx+'">📖 Read</button>':'';
-    var flag='';try{var fbp=r.feedback?JSON.parse(r.feedback):null;if(fbp&&fbp.integrity){var ts=fbp.integrity.tabSwitches||0,pb=fbp.integrity.pasteBlocked||0;if(ts>0||pb>0)flag=' <span title="Left the page '+ts+' time(s); paste blocked '+pb+' time(s)" style="color:#c44a28;font-weight:900;cursor:help">⚠</span>';}}catch(_){}
-    return '<tr><td style="font-weight:700">'+esc(r.student||'')+(r.course?'<div style="font-size:11px;font-weight:600;color:var(--tx2)">'+esc(r.course)+'</div>':'')+'</td><td><span class="lvdot" style="background:'+(LVC[r.level]||'#888')+'"></span>'+(LVN[r.level]||r.level)+'</td><td><strong>'+(r.score||0)+'</strong>/100<div class="sct"><div class="scf" style="width:'+(r.score||0)+'%;background:'+((r.score||0)>=60?'#0f9e72':'#c44a28')+'"></div></div></td><td><span class="perfb" style="background:'+pff[2]+';color:'+pff[1]+'">'+pff[0]+'</span>'+flag+readBtn+'</td><td style="color:#b0aea4;font-size:12px">'+tm+'</td></tr>';
-  }).join('');
-  g('dtbl').innerHTML='<table class="stbl"><thead><tr><th>Student</th><th>Activity</th><th>Score</th><th>Performance</th><th>Time</th></tr></thead><tbody>'+trs+'</tbody></table>';
-  g('dtbl').querySelectorAll('.readbtn').forEach(function(b){b.addEventListener('click',function(){openEssay(rows[parseInt(this.getAttribute('data-row'),10)]);});});
-}
-function openEssay(r){
-  var fb=null;try{fb=r.feedback?JSON.parse(r.feedback):null;}catch(_){}
-  var h='';
-  if(fb&&fb.bands){
-    h+='<div class="emb-bands">'+['content','structure','vocabulary','variety','accuracy'].map(function(k){var v=fb.bands[k]||0;var c=v>=80?'#0f9e72':v>=60?'#c47a10':'#c44a28';return '<div class="emb-b"><span>'+k.charAt(0).toUpperCase()+k.slice(1)+'</span><b style="color:'+c+'">'+v+'</b></div>';}).join('')+'</div>';
-    if(fb.summary)h+='<div class="emb-sum">'+esc(fb.summary)+'</div>';
-    if(fb.work&&fb.work.length)h+='<div class="emb-sum"><b>To work on:</b> '+esc(fb.work.slice(0,3).join(' · '))+'</div>';
-  }
-  if(fb&&fb.integrity&&((fb.integrity.tabSwitches||0)>0||(fb.integrity.pasteBlocked||0)>0)){
-    h+='<div style="margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--er-bg);border:1.5px solid var(--er-b);color:var(--er-t);font-size:12.5px;font-weight:700">⚠ Left the page <b>'+(fb.integrity.tabSwitches||0)+'</b> time(s); paste blocked <b>'+(fb.integrity.pasteBlocked||0)+'</b> time(s).</div>';
-  }
-  var txt=(r.essay_text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  g('emodal').innerHTML='<div class="emodal-card"><div class="emodal-top"><div><div class="emodal-name">'+esc(r.student||'')+'</div><div class="emodal-meta">'+(r.course?esc(r.course)+' · ':'')+(LVN[r.level]||r.level)+(r.essay_title?' · '+esc(r.essay_title):'')+' · Score: <b>'+(r.score||0)+'</b>/100</div></div><button class="emodal-x" id="emx">✕</button></div>'+h+'<div class="emodal-lbl">Student\'s writing</div><div class="emodal-text">'+txt+'</div></div>';
-  g('emodal').classList.add('show');
-  g('emx').addEventListener('click',function(){g('emodal').classList.remove('show');});
-  g('emodal').addEventListener('click',function(e){if(e.target===g('emodal'))g('emodal').classList.remove('show');});
-}
 function csvCell(v){v=(v==null?'':String(v));if(/[",\n\r]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
 function exportBackup(){
   var rows=dashRows||[];
@@ -1114,12 +2076,16 @@ function exportBackup(){
   }
 }
 
+
 /* ============ WIRING ============ */
 initName();
 initTeacher();
-g('nextBtn').addEventListener('click',doNext);
-g('wta').addEventListener('input',onWrite);
-g('wsubmit').addEventListener('click',gradeWriting);
+g('exitbtn').addEventListener('click',function(){showScr('s-name');});
+g('readBack').addEventListener('click',function(){showScr('s-home');});
+g('wbackbtn').addEventListener('click',function(){
+  if(locked){toast("Submit your writing first — you can't leave in exam mode.",true);return;}
+  showScr('s-home');
+});
 </script>
 </body>
 </html>
